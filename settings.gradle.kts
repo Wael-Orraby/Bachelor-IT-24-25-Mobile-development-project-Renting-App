@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "NeighbornRentApplication"
+rootProject.name = "NeighborRentApplication"
 include(":app")
  

@@ -1,1 +1,0 @@
-# Bachelor-IT-24-25-Mobile-development-project-Renting-App

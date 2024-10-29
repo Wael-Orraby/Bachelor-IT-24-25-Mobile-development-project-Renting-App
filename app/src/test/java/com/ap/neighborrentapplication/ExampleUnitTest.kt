@@ -1,4 +1,4 @@
-package com.ap.neighbornrentapplication
+package com.ap.neighborrentapplication
 
 import org.junit.Test
 
