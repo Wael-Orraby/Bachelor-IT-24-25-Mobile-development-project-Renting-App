@@ -22,7 +22,7 @@ public class IntroActivity extends AppCompatActivity {
         signInBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-               // startActivity(new Intent(IntroActivity.this, ProfileActivity.class));
+                startActivity(new Intent(IntroActivity.this, DashboardActivity.class));
             }
         });
     }
