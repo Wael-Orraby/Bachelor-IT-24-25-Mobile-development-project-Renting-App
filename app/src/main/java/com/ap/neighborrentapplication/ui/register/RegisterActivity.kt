@@ -12,6 +12,7 @@ import com.ap.neighborrentapplication.models.User
 import com.ap.neighborrentapplication.ui.login.LoginActivity
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import java.util.UUID
 
 
 class RegisterActivity : AppCompatActivity() {
@@ -78,6 +79,7 @@ class RegisterActivity : AppCompatActivity() {
 
         // Maak een User object
         val user = User(
+            id = UUID.randomUUID().toString(),
             firstName = firstName,
             lastName = lastName,
             street = street,
