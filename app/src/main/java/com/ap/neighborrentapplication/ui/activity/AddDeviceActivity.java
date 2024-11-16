@@ -5,9 +5,11 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Base64;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.Spinner;
 import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -34,6 +36,8 @@ public class AddDeviceActivity extends AppCompatActivity {
     private String imageUrl = "";
     private String ownerId, ownerName, ownerEmail, ownerCity, ownerPostalCode;
     private Uri imageUri;
+    private Spinner categorySpinner;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,6 +53,8 @@ public class AddDeviceActivity extends AppCompatActivity {
         buttonAddDevice = findViewById(R.id.button_add_device);
         buttonUploadImage = findViewById(R.id.button_upload_image);
         imageViewPreview = findViewById(R.id.imageView_preview);
+        categorySpinner = findViewById(R.id.spinner_category);
+
 
         loadOwnerData();
 
@@ -60,6 +66,8 @@ public class AddDeviceActivity extends AppCompatActivity {
                 Toast.makeText(this, "Selecteer een afbeelding", Toast.LENGTH_SHORT).show();
             }
         });
+
+        setupCategorySpinner();
     }
 
     private void loadOwnerData() {
@@ -179,6 +187,28 @@ public class AddDeviceActivity extends AppCompatActivity {
         deviceData.put("ownerEmail", ownerEmail);
         deviceData.put("postalCode", ownerPostalCode);
 
+        String categoryId;
+        int position = categorySpinner.getSelectedItemPosition();
+        if (position == 0) {
+            Toast.makeText(this, "Selecteer een categorie", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        switch (position) {
+            case 0:
+                categoryId = "kitchen";
+                break;
+            case 1:
+                categoryId = "cleaning";
+                break;
+            case 2:
+                categoryId = "garden";
+                break;
+            default:
+                categoryId = "";
+        }
+        deviceData.put("category", categoryId);
+        deviceData.put("categoryName", categorySpinner.getSelectedItem().toString());
+
         firestore.collection("devices")
                 .add(deviceData)
                 .addOnSuccessListener(aVoid -> {
@@ -186,5 +216,16 @@ public class AddDeviceActivity extends AppCompatActivity {
                     finish();
                 })
                 .addOnFailureListener(e -> Toast.makeText(this, "Toevoegen mislukt: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+    }
+
+    private void setupCategorySpinner() {
+        String[] categories = {"Selecteer categorie:","Keukenapparaten", "Schoonmaakapparaten", "Tuinapparaten"};
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_spinner_item,
+                categories
+        );
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        categorySpinner.setAdapter(adapter);
     }
 }

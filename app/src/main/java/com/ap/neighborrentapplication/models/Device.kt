@@ -8,5 +8,7 @@ data class Device(
     val pricePerDay: Double = 0.0,
     val available: Boolean = true,
     val city: String = "",
-    val postalCode: String=""
+    val postalCode: String="",
+    val category: String = "",
+    val categoryName: String = ""
 )
