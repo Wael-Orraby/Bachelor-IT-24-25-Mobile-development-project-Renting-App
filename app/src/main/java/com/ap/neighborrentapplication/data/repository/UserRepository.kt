@@ -1,4 +1,4 @@
-package com.ap.neighborrentapplication.data
+package com.ap.neighborrentapplication.data.repository
 
 import com.ap.neighborrentapplication.models.User
 import com.google.android.gms.tasks.Task

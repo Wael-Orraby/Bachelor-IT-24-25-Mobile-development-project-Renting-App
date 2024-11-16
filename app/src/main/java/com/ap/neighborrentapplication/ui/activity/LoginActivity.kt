@@ -1,14 +1,11 @@
-package com.ap.neighborrentapplication.ui.login
+package com.ap.neighborrentapplication.ui.activity
 
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.ap.neighborrentapplication.activity.DashboardActivity
 import com.google.firebase.auth.FirebaseAuth
 import com.ap.neighborrentapplication.databinding.ActivityLoginBinding
-import com.ap.neighborrentapplication.ui.dashboard.DashboardViewModel
-import com.ap.neighborrentapplication.ui.register.RegisterActivity
 
 class LoginActivity : AppCompatActivity() {
     private lateinit var auth: FirebaseAuth

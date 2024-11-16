@@ -1,10 +1,9 @@
-package com.ap.neighborrentapplication.activity;
+package com.ap.neighborrentapplication.ui.activity;
 
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.os.Bundle;
-import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 
