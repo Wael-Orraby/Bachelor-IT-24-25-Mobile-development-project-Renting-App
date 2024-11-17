@@ -3,11 +3,10 @@ package com.ap.neighborrentapplication.ui.activity
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
 import com.google.firebase.auth.FirebaseAuth
 import com.ap.neighborrentapplication.databinding.ActivityLoginBinding
 
-class LoginActivity : AppCompatActivity() {
+class LoginActivity : BaseActivity() {
     private lateinit var auth: FirebaseAuth
     private lateinit var binding: ActivityLoginBinding
 
@@ -15,11 +14,11 @@ class LoginActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        supportActionBar?.title = "Aanmelden"
-
         // Initialiseer View Binding
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        setupToolbar("Inloggen",true)
+
 
         // Initialiseer FirebaseAuth
         auth = FirebaseAuth.getInstance()

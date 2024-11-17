@@ -13,9 +13,10 @@ import com.ap.neighborrentapplication.adapter.CategoryAdapter
 import com.ap.neighborrentapplication.adapter.DevicesAdapter
 import com.ap.neighborrentapplication.models.Category
 import com.ap.neighborrentapplication.models.Device
+import com.ap.neighborrentapplication.ui.activity.BaseActivity
 import com.google.firebase.firestore.FirebaseFirestore
 
-class CategorySearchActivity : AppCompatActivity() {
+class CategorySearchActivity : BaseActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var deviceRecyclerView: RecyclerView
     private lateinit var searchView: SearchView
@@ -23,6 +24,8 @@ class CategorySearchActivity : AppCompatActivity() {
     private lateinit var deviceAdapter: DevicesAdapter
     private lateinit var firestore: FirebaseFirestore
     private lateinit var noResultsText: TextView
+
+
 
     private val categories = listOf(
         Category("kitchen", "Keukenapparaten", R.drawable.keuken),
@@ -33,6 +36,7 @@ class CategorySearchActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_category_search)
+        setupToolbar("Categorieën",true);
 
         firestore = FirebaseFirestore.getInstance()
         setupViews()
