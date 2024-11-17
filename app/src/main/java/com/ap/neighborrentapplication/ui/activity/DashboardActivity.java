@@ -1,4 +1,4 @@
-package com.ap.neighborrentapplication.activity;
+package com.ap.neighborrentapplication.ui.activity;
 
 import android.content.Intent;
 import android.graphics.Color;
@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.ap.neighborrentapplication.R;
+import com.ap.neighborrentapplication.activity.CategorySearchActivity;
 import com.ap.neighborrentapplication.adapter.DevicesAdapter;
 import com.ap.neighborrentapplication.models.Device;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -36,10 +37,13 @@ public class DashboardActivity extends AppCompatActivity {
     private FloatingActionButton fabAddDevice;
     private ImageView homeBtnImage;
     private TextView homeBtnTxt;
+    private  ImageView searchBtn;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
+
         setContentView(R.layout.activity_dashboard);
 
         firestore = FirebaseFirestore.getInstance();
@@ -51,6 +55,9 @@ public class DashboardActivity extends AppCompatActivity {
 
         fabAddDevice = findViewById(R.id.fab_add_device);
         fabAddDevice.setOnClickListener(v -> startActivity(new Intent(DashboardActivity.this, AddDeviceActivity.class)));
+
+        searchBtn = findViewById(R.id.searchBtn);
+        searchBtn.setOnClickListener(v ->  startActivity(new Intent(DashboardActivity.this, CategorySearchActivity.class)));
 
         initRecyclerView();
         loadDevicesFromFirestore();

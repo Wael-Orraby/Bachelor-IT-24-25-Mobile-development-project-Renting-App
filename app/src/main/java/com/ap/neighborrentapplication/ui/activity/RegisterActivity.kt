@@ -1,4 +1,4 @@
-package com.ap.neighborrentapplication.ui.register
+package com.ap.neighborrentapplication.ui.activity
 
 import android.content.Intent
 import android.os.Bundle
@@ -6,10 +6,9 @@ import android.util.Patterns
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.ap.neighborrentapplication.data.UserRepository
+import com.ap.neighborrentapplication.data.repository.UserRepository
 import com.ap.neighborrentapplication.databinding.ActivityRegisterBinding
 import com.ap.neighborrentapplication.models.User
-import com.ap.neighborrentapplication.ui.login.LoginActivity
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.util.UUID

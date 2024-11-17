@@ -1,4 +1,4 @@
-package com.ap.neighborrentapplication.activity;
+package com.ap.neighborrentapplication.ui.activity;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -9,8 +9,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatButton;
 
 import com.ap.neighborrentapplication.R;
-import com.ap.neighborrentapplication.ui.login.LoginActivity;
-import com.ap.neighborrentapplication.ui.register.RegisterActivity;
 
 
 public class IntroActivity extends AppCompatActivity {

@@ -19,37 +19,41 @@
             android:padding="16dp">
 
             <!-- Device Name TextField -->
-            <com.google.android.material.textfield.TextInputLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Naam van het toestel"
-                app:boxBackgroundMode="outline"
-                app:boxStrokeColor="@color/dark_blue"
-                app:boxCornerRadiusTopStart="8dp"
-                app:boxCornerRadiusTopEnd="8dp">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/editText_name"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"/>
-            </com.google.android.material.textfield.TextInputLayout>
 
             <!-- Description TextField -->
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:background="@color/light_blue"
+                android:hint="Naam van het toestel"
+                app:boxBackgroundMode="outline"
+                app:boxCornerRadiusTopEnd="10dp"
+                app:boxCornerRadiusTopStart="8dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/editText_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@color/light_blue" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
+                android:background="@color/light_blue"
                 android:hint="Beschrijving"
                 app:boxBackgroundMode="outline"
-                app:boxStrokeColor="@color/dark_blue"
                 app:boxCornerRadiusTopStart="8dp"
                 app:boxCornerRadiusTopEnd="8dp">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/editText_description"
                     android:layout_width="match_parent"
+                    android:background="@color/light_blue"
                     android:layout_height="wrap_content"/>
             </com.google.android.material.textfield.TextInputLayout>
+
 
             <!-- Price Per Day TextField -->
             <com.google.android.material.textfield.TextInputLayout
@@ -58,7 +62,6 @@
                 android:layout_marginTop="16dp"
                 android:hint="Prijs per dag (€)"
                 app:boxBackgroundMode="outline"
-                app:boxStrokeColor="@color/dark_blue"
                 app:boxCornerRadiusTopStart="8dp"
                 app:boxCornerRadiusTopEnd="8dp">
 
@@ -66,8 +69,20 @@
                     android:id="@+id/editText_price"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:background="@color/light_blue"
                     android:inputType="numberDecimal"/>
             </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Category Spinner -->
+            <Spinner
+                android:id="@+id/spinner_category"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:minHeight="48dp"
+                android:background="@color/light_blue"
+                android:popupBackground="@android:color/white"
+                android:spinnerMode="dropdown"/>
 
             <!-- Upload Image Button -->
             <com.google.android.material.button.MaterialButton
