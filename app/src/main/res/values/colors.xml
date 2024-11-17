@@ -10,4 +10,6 @@
     <color name="dark_blue">#32357A</color>
     <color name="light_blue">#F2F1F6</color>
     <color name="buttonColor">#4A3F95</color>
+    <color name="light_gray">#F9F9F9</color>
+
 </resources>
