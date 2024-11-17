@@ -75,7 +75,7 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Password"
+                android:hint="Wachtwoord"
                 app:boxBackgroundColor="@color/light_blue"
                 app:hintTextColor="@color/black"
                 app:boxStrokeColor="@color/black"
