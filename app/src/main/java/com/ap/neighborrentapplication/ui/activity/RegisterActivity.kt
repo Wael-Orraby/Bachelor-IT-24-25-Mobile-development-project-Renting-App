@@ -6,6 +6,7 @@ import android.util.Patterns
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.ap.neighborrentapplication.R
 import com.ap.neighborrentapplication.data.repository.UserRepository
 import com.ap.neighborrentapplication.databinding.ActivityRegisterBinding
 import com.ap.neighborrentapplication.models.User
@@ -14,17 +15,19 @@ import kotlinx.coroutines.tasks.await
 import java.util.UUID
 
 
-class RegisterActivity : AppCompatActivity() {
+class RegisterActivity : BaseActivity() {
     private lateinit var binding: ActivityRegisterBinding
     private lateinit var userRepository: UserRepository
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         binding = ActivityRegisterBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        setupToolbar("Account Aanmaken",true)
 
-        supportActionBar?.title = "Account Aanmaken"
+
         // Initialiseer UserRepository
         userRepository = UserRepository()
 

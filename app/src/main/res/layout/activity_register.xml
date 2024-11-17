@@ -18,6 +18,7 @@
         <View
             android:layout_width="150dp"
             android:layout_height="150dp"
+            android:layout_marginTop="61dp"
             android:background="@drawable/circle_background"
             android:layout_gravity="center_horizontal" />
 
@@ -231,14 +232,14 @@
             android:backgroundTint="@color/buttonColor"
             android:textColor="@color/white"
             app:cornerRadius="8dp"
-            android:layout_marginTop="24dp"/>
+            android:layout_marginTop="25dp"/>
 
         <!-- Teug naar inlog pagina Knop -->
         <TextView
             android:id="@+id/backToLoginText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="22dp"
             android:text="Heb je al een account? Meld je hier aan"
             android:textSize="16sp"
             android:textColor="@color/white"
