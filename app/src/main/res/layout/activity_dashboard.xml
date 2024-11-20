@@ -45,7 +45,6 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="32dp"
-                        android:text="Hallo, Najib 😀"
                         android:textColor="@color/white"
                         android:textSize="20sp"
                         android:textStyle="bold"
@@ -126,9 +125,12 @@
                         app:cardElevation="3dp">
 
                         <LinearLayout
+                            android:id="@+id/favoritesSection"
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
-                            android:orientation="vertical">
+                            android:orientation="vertical"
+                            android:clickable="true"
+                            android:focusable="true">
 
                             <androidx.constraintlayout.widget.ConstraintLayout
                                 android:layout_width="60dp"
@@ -259,11 +261,11 @@
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/recylerview"
                         android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:layout_marginBottom="120dp"
-                        android:clipToPadding="false"
-                        android:paddingStart="24dp"
-                        android:paddingEnd="24dp" />
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:clipToPadding="false"/>
 
                 </LinearLayout>
 
@@ -437,4 +439,5 @@
             app:maxImageSize="40dp"
             app:tint="@color/white" />
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
+
 </androidx.constraintlayout.widget.ConstraintLayout>

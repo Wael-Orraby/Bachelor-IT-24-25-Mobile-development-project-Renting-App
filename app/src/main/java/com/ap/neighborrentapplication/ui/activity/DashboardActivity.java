@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -18,7 +19,9 @@ import com.ap.neighborrentapplication.activity.CategorySearchActivity;
 import com.ap.neighborrentapplication.adapter.DevicesAdapter;
 import com.ap.neighborrentapplication.models.Device;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
@@ -39,15 +42,26 @@ public class DashboardActivity extends AppCompatActivity {
     private TextView homeBtnTxt;
     private  ImageView searchBtn;
 
+    private View favoritesSection;
+
+
+    private boolean isFavoritesShowing = false;
+    private ImageView favoritesSectionIcon;
+
+    private TextView userGreetingText;
+    private FirebaseAuth auth;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_dashboard);
 
-
-
+        auth = FirebaseAuth.getInstance();
         firestore = FirebaseFirestore.getInstance();
-
+        
+        userGreetingText = findViewById(R.id.textView5);
+        loadUserData();
+        
         homeBtnImage = findViewById(R.id.homeBtnImage);
         homeBtnTxt = findViewById(R.id.homeBtnTxt);
         homeBtnImage.setColorFilter(Color.parseColor("#FF3700B3"), PorterDuff.Mode.SRC_IN);
@@ -58,6 +72,24 @@ public class DashboardActivity extends AppCompatActivity {
 
         searchBtn = findViewById(R.id.searchBtn);
         searchBtn.setOnClickListener(v ->  startActivity(new Intent(DashboardActivity.this, CategorySearchActivity.class)));
+
+
+
+
+        favoritesSection = findViewById(R.id.favoritesSection);
+        favoritesSectionIcon = findViewById(R.id.imageView8);
+        
+        favoritesSection.setOnClickListener(v -> {
+            if (isFavoritesShowing) {
+                favoritesSectionIcon.setImageResource(R.drawable.favorites);
+                loadDevicesFromFirestore();
+                isFavoritesShowing = false;
+            } else {
+                favoritesSectionIcon.setImageResource(R.drawable.ic_redheart);
+                showFavorites();
+                isFavoritesShowing = true;
+            }
+        });
 
         initRecyclerView();
         loadDevicesFromFirestore();
@@ -80,20 +112,73 @@ public class DashboardActivity extends AppCompatActivity {
             @Override
             public void onEvent(@Nullable QuerySnapshot value, @Nullable FirebaseFirestoreException error) {
                 if (error != null) {
-                    return;  // Log eventueel een foutmelding
+                    return;
                 }
 
                 if (value != null) {
-                    deviceList.clear();  // Leeg de lijst zodat we nieuwe data kunnen toevoegen
+                    deviceList.clear();
 
                     for (QueryDocumentSnapshot document : value) {
                         Device device = document.toObject(Device.class);
                         deviceList.add(device);
                     }
 
-                    adapterList.notifyDataSetChanged();  // Adapter updaten met nieuwe data
+                    adapterList.notifyDataSetChanged();
                 }
             }
         });
+    }
+
+    private void showFavorites() {
+        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        
+        firestore.collection("favorites")
+                .whereEqualTo("userId", userId)
+                .get()
+                .addOnSuccessListener(documents -> {
+                    deviceList.clear();
+                    
+                    if (documents.isEmpty()) {
+                        Toast.makeText(this, "Je hebt nog geen favorieten", Toast.LENGTH_SHORT).show();
+                        loadDevicesFromFirestore();
+                        favoritesSectionIcon.setImageResource(R.drawable.favorites);
+                        isFavoritesShowing = false;
+                        return;
+                    }
+
+                    for (DocumentSnapshot document : documents) {
+                        String deviceId = document.getString("deviceId");
+                        
+                        if (deviceId != null) {
+                            firestore.collection("devices")
+                                    .whereEqualTo("id", deviceId)
+                                    .get()
+                                    .addOnSuccessListener(deviceDocs -> {
+                                        if (!deviceDocs.isEmpty()) {
+                                            Device device = deviceDocs.getDocuments().get(0).toObject(Device.class);
+                                            if (device != null) {
+                                                deviceList.add(device);
+                                                adapterList.notifyDataSetChanged();
+                                            }
+                                        }
+                                    });
+                        }
+                    }
+                });
+    }
+
+    private void loadUserData() {
+        String userId = auth.getCurrentUser().getUid();
+        firestore.collection("users").document(userId)
+            .get()
+            .addOnSuccessListener(documentSnapshot -> {
+                if (documentSnapshot.exists()) {
+                    String firstName = documentSnapshot.getString("firstName");
+                    userGreetingText.setText("Hallo, " + firstName + " 😀");
+                }
+            })
+            .addOnFailureListener(e -> {
+                Toast.makeText(this, "Fout bij ophalen gebruikersgegevens", Toast.LENGTH_SHORT).show();
+            });
     }
 }
