@@ -41,6 +41,7 @@ public class DashboardActivity extends AppCompatActivity {
     private ImageView homeBtnImage;
     private TextView homeBtnTxt;
     private  ImageView searchBtn;
+    private  ImageView profileBtn;
 
     private View favoritesSection;
 
@@ -71,7 +72,11 @@ public class DashboardActivity extends AppCompatActivity {
         fabAddDevice.setOnClickListener(v -> startActivity(new Intent(DashboardActivity.this, AddDeviceActivity.class)));
 
         searchBtn = findViewById(R.id.searchBtn);
-        searchBtn.setOnClickListener(v ->  startActivity(new Intent(DashboardActivity.this, CategorySearchActivity.class)));
+        searchBtn.setOnClickListener(v ->  startActivity(new Intent(DashboardActivity.this, CategorySearchActivity.class)));searchBtn = findViewById(R.id.searchBtn);
+
+
+        profileBtn = findViewById(R.id.profileBtn);
+        profileBtn.setOnClickListener(v ->  startActivity(new Intent(DashboardActivity.this, ProfileActivity.class)));
 
 
 
