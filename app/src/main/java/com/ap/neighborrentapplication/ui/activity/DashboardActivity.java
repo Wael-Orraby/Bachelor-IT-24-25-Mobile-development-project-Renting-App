@@ -48,15 +48,20 @@ public class DashboardActivity extends AppCompatActivity {
     private boolean isFavoritesShowing = false;
     private ImageView favoritesSectionIcon;
 
+    private TextView userGreetingText;
+    private FirebaseAuth auth;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_dashboard);
 
-
-
+        auth = FirebaseAuth.getInstance();
         firestore = FirebaseFirestore.getInstance();
-
+        
+        userGreetingText = findViewById(R.id.textView5);
+        loadUserData();
+        
         homeBtnImage = findViewById(R.id.homeBtnImage);
         homeBtnTxt = findViewById(R.id.homeBtnTxt);
         homeBtnImage.setColorFilter(Color.parseColor("#FF3700B3"), PorterDuff.Mode.SRC_IN);
@@ -160,5 +165,20 @@ public class DashboardActivity extends AppCompatActivity {
                         }
                     }
                 });
+    }
+
+    private void loadUserData() {
+        String userId = auth.getCurrentUser().getUid();
+        firestore.collection("users").document(userId)
+            .get()
+            .addOnSuccessListener(documentSnapshot -> {
+                if (documentSnapshot.exists()) {
+                    String firstName = documentSnapshot.getString("firstName");
+                    userGreetingText.setText("Hallo, " + firstName + " 😀");
+                }
+            })
+            .addOnFailureListener(e -> {
+                Toast.makeText(this, "Fout bij ophalen gebruikersgegevens", Toast.LENGTH_SHORT).show();
+            });
     }
 }
