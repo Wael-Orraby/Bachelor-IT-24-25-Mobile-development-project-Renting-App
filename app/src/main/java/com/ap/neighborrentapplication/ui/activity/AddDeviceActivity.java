@@ -194,13 +194,13 @@ public class AddDeviceActivity extends AppCompatActivity {
             return;
         }
         switch (position) {
-            case 0:
+            case 1:
                 categoryId = "kitchen";
                 break;
-            case 1:
+            case 2:
                 categoryId = "cleaning";
                 break;
-            case 2:
+            case 3:
                 categoryId = "garden";
                 break;
             default:
