@@ -45,7 +45,6 @@ public class DashboardActivity extends AppCompatActivity {
 
     private View favoritesSection;
 
-
     private boolean isFavoritesShowing = false;
     private ImageView favoritesSectionIcon;
 
@@ -72,7 +71,8 @@ public class DashboardActivity extends AppCompatActivity {
         fabAddDevice.setOnClickListener(v -> startActivity(new Intent(DashboardActivity.this, AddDeviceActivity.class)));
 
         searchBtn = findViewById(R.id.searchBtn);
-        searchBtn.setOnClickListener(v ->  startActivity(new Intent(DashboardActivity.this, CategorySearchActivity.class)));searchBtn = findViewById(R.id.searchBtn);
+        searchBtn.setOnClickListener(v ->  startActivity(new Intent(DashboardActivity.this, CategorySearchActivity.class)));
+        searchBtn = findViewById(R.id.searchBtn);
 
 
         profileBtn = findViewById(R.id.profileBtn);
@@ -103,7 +103,7 @@ public class DashboardActivity extends AppCompatActivity {
     private void initRecyclerView() {
         recyclerView = findViewById(R.id.recylerview);
 
-        GridLayoutManager gridLayoutManager = new GridLayoutManager(this, 2);
+        GridLayoutManager gridLayoutManager = new GridLayoutManager(this, 1);
         recyclerView.setLayoutManager(gridLayoutManager);
 
         adapterList = new DevicesAdapter(deviceList, this);  // Context toevoegen aan adapter
