@@ -1,7 +1,7 @@
 package com.ap.neighborrentapplication.adapter;
 
-import android.animation.ObjectAnimator;
 import android.content.Context;
+import android.content.res.ColorStateList;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -9,17 +9,26 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.RatingBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.ap.neighborrentapplication.R;
 import com.ap.neighborrentapplication.models.Device;
 import com.ap.neighborrentapplication.models.Reservation;
+import com.ap.neighborrentapplication.models.Review;
 import com.bumptech.glide.Glide;
+import com.google.android.material.chip.Chip;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -37,10 +46,14 @@ public class GroupedReservationAdapter extends RecyclerView.Adapter<RecyclerView
     private boolean isLeaseView;
     private FirebaseFirestore db;
     private SimpleDateFormat dateFormat;
+    private FirebaseAuth auth;
+    private Context context;
     
-    public GroupedReservationAdapter(boolean isLeaseView) {
+    public GroupedReservationAdapter(boolean isLeaseView, Context context) {
         this.isLeaseView = isLeaseView;
+        this.context = context;
         this.db = FirebaseFirestore.getInstance();
+        this.auth = FirebaseAuth.getInstance();
         this.dateFormat = new SimpleDateFormat("dd MMM yyyy", new Locale("nl"));
         setupStatusTranslations();
         initExpandedStates();
@@ -126,7 +139,207 @@ public class GroupedReservationAdapter extends RecyclerView.Adapter<RecyclerView
         if (getItemViewType(position) == TYPE_HEADER) {
             bindHeaderViewHolder((HeaderViewHolder) holder, position);
         } else {
-            bindItemViewHolder((ItemViewHolder) holder, position);
+            ItemViewHolder itemHolder = (ItemViewHolder) holder;
+            Reservation reservation = (Reservation) items.get(position);
+            Context context = holder.itemView.getContext();
+            
+            // Load device details
+            db.collection("devices")
+                .document(reservation.getDeviceId())
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    Device device = documentSnapshot.toObject(Device.class);
+                    if (device != null) {
+                        itemHolder.deviceName.setText(device.getName());
+                        // Load device image
+                        if (device.getImageUrl() != null) {
+                            Glide.with(context)
+                                .load(device.getImageUrl())
+                                .centerCrop()
+                                .into(itemHolder.deviceImage);
+                        }
+                    }
+                });
+            
+            // Set reservation dates
+            String dateRange = String.format("%s - %s",
+                dateFormat.format(reservation.getStartDate()),
+                dateFormat.format(reservation.getEndDate()));
+            itemHolder.reservationDates.setText(dateRange);
+            
+            // Set price and duration
+            itemHolder.totalPrice.setText(String.format(Locale.getDefault(), "€%.2f", reservation.getTotalPrice()));
+            
+            // Calculate duration
+            long diffInMillis = reservation.getEndDate().getTime() - reservation.getStartDate().getTime();
+            int days = (int) (diffInMillis / (1000 * 60 * 60 * 24)) + 1;
+            itemHolder.durationText.setText(String.format("(%d dagen)", days));
+            
+            // Set status chip
+            String status = reservation.getStatus();
+            if (status == null) status = "pending";
+            status = status.toLowerCase();
+            
+            int chipColor;
+            String statusText = statusTranslations.get(status);
+            itemHolder.statusChip.setText(statusText);
+            
+            switch (status) {
+                case "accepted":
+                    chipColor = context.getColor(R.color.accepted_color);
+                    if (isLeaseView && itemHolder.actionButtons != null) {
+                        itemHolder.actionButtons.setVisibility(View.GONE);
+                    }
+                    if (!isLeaseView && itemHolder.reviewButton != null) {
+                        itemHolder.reviewButton.setVisibility(View.GONE);
+                    }
+                    break;
+                case "completed":
+                    chipColor = context.getColor(R.color.completed_color);
+                    if (isLeaseView && itemHolder.actionButtons != null) {
+                        itemHolder.actionButtons.setVisibility(View.GONE);
+                    }
+                    
+                    // Show reviews for completed reservations
+                    setupReviews(itemHolder, reservation);
+                    break;
+                case "rejected":
+                    chipColor = context.getColor(R.color.rejected_color);
+                    if (isLeaseView && itemHolder.actionButtons != null) {
+                        itemHolder.actionButtons.setVisibility(View.GONE);
+                    }
+                    if (!isLeaseView && itemHolder.reviewButton != null) {
+                        itemHolder.reviewButton.setVisibility(View.GONE);
+                    }
+                    break;
+                default: // pending
+                    chipColor = context.getColor(R.color.pending_color);
+                    if (isLeaseView && itemHolder.actionButtons != null) {
+                        itemHolder.actionButtons.setVisibility(View.VISIBLE);
+                        setupActionButtons(itemHolder, reservation);
+                    }
+                    if (!isLeaseView && itemHolder.reviewButton != null) {
+                        itemHolder.reviewButton.setVisibility(View.GONE);
+                    }
+                    break;
+            }
+            
+            itemHolder.statusChip.setChipBackgroundColor(ColorStateList.valueOf(chipColor));
+            
+            // Load renter name for lease view
+            if (isLeaseView && itemHolder.renterName != null) {
+                db.collection("users")
+                    .document(reservation.getRenterId())
+                    .get()
+                    .addOnSuccessListener(documentSnapshot -> {
+                        String firstName = documentSnapshot.getString("firstName");
+                        String lastName = documentSnapshot.getString("lastName");
+                        if (firstName != null && lastName != null) {
+                            itemHolder.renterName.setText(firstName + " " + lastName);
+                        }
+                    });
+            }
+        }
+    }
+    
+    private void setupActionButtons(ItemViewHolder holder, Reservation reservation) {
+        if (holder.acceptButton != null && holder.rejectButton != null) {
+            holder.acceptButton.setOnClickListener(v -> {
+                reservation.setStatus("accepted");
+                updateReservationStatus(reservation, "accepted");
+            });
+            
+            holder.rejectButton.setOnClickListener(v -> {
+                reservation.setStatus("rejected");
+                updateReservationStatus(reservation, "rejected");
+            });
+        }
+    }
+    
+    private void updateReservationStatus(Reservation reservation, String newStatus) {
+        db.collection("reservations")
+            .document(reservation.getId())
+            .update("status", newStatus)
+            .addOnSuccessListener(aVoid -> {
+                String message = newStatus.equals("accepted") ? 
+                    "Reservering geaccepteerd" : "Reservering geweigerd";
+                Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
+            })
+            .addOnFailureListener(e -> {
+                Log.e(TAG, "Error updating reservation status", e);
+                Toast.makeText(context, "Fout bij bijwerken status", Toast.LENGTH_SHORT).show();
+            });
+    }
+    
+    private void setupReviews(ItemViewHolder holder, Reservation reservation) {
+        // Check if the views are available
+        if (holder.reviewsContainer == null || holder.reviewsRecyclerView == null) {
+            Log.e(TAG, "Reviews container or RecyclerView is null");
+            return;
+        }
+
+        try {
+            LinearLayoutManager layoutManager = new LinearLayoutManager(holder.itemView.getContext());
+            holder.reviewsRecyclerView.setLayoutManager(layoutManager);
+            ReviewAdapter adapter = new ReviewAdapter(holder.itemView.getContext());
+            holder.reviewsRecyclerView.setAdapter(adapter);
+
+            db.collection("reviews")
+                .whereEqualTo("reservationId", reservation.getId())
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    List<Review> reviews = new ArrayList<>();
+                    for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        Review review = doc.toObject(Review.class);
+                        if (review != null) {
+                            review.setId(doc.getId());
+                            reviews.add(review);
+                        }
+                    }
+                    adapter.setReviews(reviews);
+                    
+                    // Show reviews container if there are reviews
+                    if (holder.reviewsContainer != null) {
+                        holder.reviewsContainer.setVisibility(reviews.isEmpty() ? View.GONE : View.VISIBLE);
+                    }
+
+                    // Handle review button visibility
+                    if (holder.reviewButton != null) {
+                        // Hide review button in lease view
+                        if (isLeaseView) {
+                            holder.reviewButton.setVisibility(View.GONE);
+                        } else {
+                            // In rent view, check if user has already reviewed
+                            String currentUserId = auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : null;
+                            if (currentUserId != null && currentUserId.equals(reservation.getRenterId())) {
+                                boolean hasReviewed = false;
+                                for (Review review : reviews) {
+                                    if (currentUserId.equals(review.getUserId())) {
+                                        hasReviewed = true;
+                                        break;
+                                    }
+                                }
+                                holder.reviewButton.setVisibility(hasReviewed ? View.GONE : View.VISIBLE);
+                                if (!hasReviewed) {
+                                    holder.reviewButton.setOnClickListener(v -> showReviewDialog(reservation));
+                                }
+                            } else {
+                                holder.reviewButton.setVisibility(View.GONE);
+                            }
+                        }
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error loading reviews", e);
+                    if (holder.reviewsContainer != null) {
+                        holder.reviewsContainer.setVisibility(View.GONE);
+                    }
+                    if (holder.reviewButton != null) {
+                        holder.reviewButton.setVisibility(View.GONE);
+                    }
+                });
+        } catch (Exception e) {
+            Log.e(TAG, "Error setting up reviews", e);
         }
     }
 
@@ -139,178 +352,6 @@ public class GroupedReservationAdapter extends RecyclerView.Adapter<RecyclerView
         holder.arrowIcon.setRotation(isExpanded ? 180 : 0);
         
         holder.itemView.setOnClickListener(v -> toggleGroup(header.getTitle(), position));
-    }
-
-    private void bindItemViewHolder(ItemViewHolder holder, int position) {
-        Reservation reservation = (Reservation) items.get(position);
-        Context context = holder.itemView.getContext();
-
-        // Set reservation dates
-        String dateRange = String.format("%s - %s",
-            dateFormat.format(reservation.getStartDate()),
-            dateFormat.format(reservation.getEndDate()));
-        holder.reservationDates.setText(dateRange);
-
-        // Set price and duration
-        holder.totalPrice.setText(String.format(Locale.getDefault(), "€%.2f", reservation.getTotalPrice()));
-
-        // Calculate duration
-        long diffInMillis = reservation.getEndDate().getTime() - reservation.getStartDate().getTime();
-        int days = (int) (diffInMillis / (1000 * 60 * 60 * 24)) + 1;
-        holder.durationText.setText(String.format("(%d dagen)", days));
-
-        // Set status chip
-        String status = reservation.getStatus();
-        if (status == null) status = "pending";
-        status = status.toLowerCase();
-
-        int chipColor;
-        String statusText = statusTranslations.get(status);
-        switch (status) {
-            case "accepted":
-                chipColor = context.getColor(R.color.accepted_color);
-                if (isLeaseView && holder.actionButtons != null) {
-                    holder.actionButtons.setVisibility(View.GONE);
-                }
-                break;
-            case "completed":
-                chipColor = context.getColor(R.color.completed_color);
-                if (isLeaseView && holder.actionButtons != null) {
-                    holder.actionButtons.setVisibility(View.GONE);
-                }
-                break;
-            case "rejected":
-                chipColor = context.getColor(R.color.rejected_color);
-                if (isLeaseView && holder.actionButtons != null) {
-                    holder.actionButtons.setVisibility(View.GONE);
-                }
-                break;
-            default: // pending
-                chipColor = context.getColor(R.color.pending_color);
-                if (isLeaseView && holder.actionButtons != null) {
-                    holder.actionButtons.setVisibility(View.VISIBLE);
-                }
-                break;
-        }
-        holder.statusChip.setChipBackgroundColor(android.content.res.ColorStateList.valueOf(chipColor));
-        holder.statusChip.setText(statusText);
-
-        // Load renter details for lease view
-        if (isLeaseView && holder.renterName != null) {
-            String renterId = reservation.getRenterId();
-            Log.d(TAG, "Loading renter with ID: " + renterId);
-            
-            if (renterId != null && !renterId.isEmpty()) {
-                holder.renterName.setText("Loading...");
-                db.collection("users")
-                    .document(renterId)
-                    .get()
-                    .addOnSuccessListener(documentSnapshot -> {
-                        if (documentSnapshot.exists()) {
-                            String firstName = documentSnapshot.getString("firstName");
-                            String lastName = documentSnapshot.getString("lastName");
-                            Log.d(TAG, "Renter data loaded - firstName: " + firstName + ", lastName: " + lastName);
-                            if (firstName != null && lastName != null) {
-                                String fullName = firstName + " " + lastName;
-                                holder.renterName.setText(fullName);
-                                Log.d(TAG, "Setting renter name to: " + fullName);
-                            } else {
-                                holder.renterName.setText("Onbekende gebruiker");
-                                Log.d(TAG, "Renter name fields are null");
-                            }
-                        } else {
-                            holder.renterName.setText("Gebruiker niet gevonden");
-                            Log.d(TAG, "Renter document does not exist");
-                        }
-                    })
-                    .addOnFailureListener(e -> {
-                        holder.renterName.setText("Fout bij laden gebruiker");
-                        Log.e(TAG, "Error loading renter: " + e.getMessage(), e);
-                    });
-            } else {
-                holder.renterName.setText("Geen huurder ID");
-                Log.d(TAG, "No renter ID available");
-            }
-        }
-
-        // Load device details
-        String deviceId = reservation.getDeviceId();
-        Log.d(TAG, "Loading device with ID: " + deviceId);
-
-        if (deviceId == null || deviceId.isEmpty()) {
-            Log.e(TAG, "Device ID is null or empty");
-            holder.deviceName.setText("Invalid Device ID");
-            return;
-        }
-
-        // Load device details
-        db.collection("devices")
-            .document(deviceId)
-            .get()
-            .addOnSuccessListener(documentSnapshot -> {
-                if (documentSnapshot.exists()) {
-                    Device device = documentSnapshot.toObject(Device.class);
-                    if (device != null) {
-                        device.setId(documentSnapshot.getId());
-                        String name = device.getName();
-                        String imageUrl = device.getImageUrl();
-
-                        holder.deviceName.setText(name != null && !name.isEmpty() ? name : "Unnamed Device");
-
-                        if (imageUrl != null && !imageUrl.isEmpty()) {
-                            Glide.with(context)
-                                .load(imageUrl)
-                                .centerCrop()
-                                .placeholder(R.drawable.ic_device_placeholder)
-                                .error(R.drawable.ic_device_placeholder)
-                                .into(holder.deviceImage);
-                        } else {
-                            holder.deviceImage.setImageResource(R.drawable.ic_device_placeholder);
-                        }
-                    }
-                } else {
-                    holder.deviceName.setText("Device Not Found");
-                    holder.deviceImage.setImageResource(R.drawable.ic_device_placeholder);
-                }
-            })
-            .addOnFailureListener(e -> {
-                holder.deviceName.setText("Error Loading Device");
-                holder.deviceImage.setImageResource(R.drawable.ic_device_placeholder);
-                Log.e(TAG, "Error loading device: " + e.getMessage(), e);
-            });
-
-        // Set action button listeners for lease view
-        if (isLeaseView && holder.actionButtons != null) {
-            holder.acceptButton.setOnClickListener(v -> {
-                reservation.updateStatus("accepted", new Reservation.OnStatusUpdateListener() {
-                    @Override
-                    public void onSuccess() {
-                        Toast.makeText(context, "Reservering geaccepteerd", Toast.LENGTH_SHORT).show();
-                        notifyItemChanged(position);
-                    }
-
-                    @Override
-                    public void onFailure(String error) {
-                        Toast.makeText(context, "Fout bij het accepteren: " + error, Toast.LENGTH_SHORT).show();
-                    }
-                });
-            });
-
-            holder.rejectButton.setOnClickListener(v -> {
-                reservation.updateStatus("rejected", new Reservation.OnStatusUpdateListener() {
-                    @Override
-                    public void onSuccess() {
-                        Toast.makeText(context, "Reservering geweigerd", Toast.LENGTH_SHORT).show();
-                        notifyItemChanged(position);
-                    }
-
-                    @Override
-                    public void onFailure(String error) {
-                        Toast.makeText(context, "Fout bij het weigeren: " + error, Toast.LENGTH_SHORT).show();
-                    }
-                });
-            });
-        }
     }
 
     private void toggleGroup(String groupTitle, int headerPosition) {
@@ -362,6 +403,52 @@ public class GroupedReservationAdapter extends RecyclerView.Adapter<RecyclerView
         }
     }
 
+    private void showReviewDialog(Reservation reservation) {
+        View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_review, null);
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        builder.setView(dialogView);
+
+        RatingBar ratingBar = dialogView.findViewById(R.id.ratingBar);
+        TextInputEditText commentEditText = dialogView.findViewById(R.id.commentEditText);
+        Button submitButton = dialogView.findViewById(R.id.submitButton);
+        Button cancelButton = dialogView.findViewById(R.id.cancelButton);
+
+        AlertDialog dialog = builder.create();
+
+        submitButton.setOnClickListener(v -> {
+            float rating = ratingBar.getRating();
+            String comment = commentEditText.getText().toString().trim();
+
+            if (rating == 0) {
+                Toast.makeText(context, "Geef een beoordeling", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            Review review = new Review();
+            review.setDeviceId(reservation.getDeviceId());
+            review.setReservationId(reservation.getId());
+            review.setUserId(auth.getCurrentUser().getUid());
+            review.setRating(rating);
+            review.setComment(comment);
+            review.setCreatedAt(new Date());
+
+            db.collection("reviews")
+                .add(review)
+                .addOnSuccessListener(documentReference -> {
+                    dialog.dismiss();
+                    Toast.makeText(context, "Beoordeling geplaatst", Toast.LENGTH_SHORT).show();
+                    notifyDataSetChanged();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error adding review", e);
+                    Toast.makeText(context, "Fout bij plaatsen beoordeling", Toast.LENGTH_SHORT).show();
+                });
+        });
+
+        cancelButton.setOnClickListener(v -> dialog.dismiss());
+        dialog.show();
+    }
+
     @Override
     public int getItemCount() {
         return items.size();
@@ -405,10 +492,13 @@ public class GroupedReservationAdapter extends RecyclerView.Adapter<RecyclerView
         TextView durationText;
         TextView renterName;
         ImageView deviceImage;
-        com.google.android.material.chip.Chip statusChip;
+        Chip statusChip;
         LinearLayout actionButtons;
         Button acceptButton;
         Button rejectButton;
+        Button reviewButton;
+        LinearLayout reviewsContainer;
+        RecyclerView reviewsRecyclerView;
 
         public ItemViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -418,6 +508,9 @@ public class GroupedReservationAdapter extends RecyclerView.Adapter<RecyclerView
             durationText = itemView.findViewById(R.id.durationText);
             deviceImage = itemView.findViewById(R.id.deviceImage);
             statusChip = itemView.findViewById(R.id.statusChip);
+            reviewButton = itemView.findViewById(R.id.reviewButton);
+            reviewsContainer = itemView.findViewById(R.id.reviewsContainer);
+            reviewsRecyclerView = itemView.findViewById(R.id.reviewsRecyclerView);
             
             // Alleen voor lease view
             if (isLeaseView) {

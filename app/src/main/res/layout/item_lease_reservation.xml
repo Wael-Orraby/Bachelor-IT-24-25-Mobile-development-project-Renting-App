@@ -98,6 +98,24 @@
 
             </LinearLayout>
 
+            <!-- Reviews Section -->
+<LinearLayout
+    android:id="@+id/reviewsContainer"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:visibility="gone"
+    android:layout_marginTop="8dp">
+
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/reviewsRecyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:nestedScrollingEnabled="false"/>
+
+</LinearLayout>
+
             <!-- Reservation Period -->
             <LinearLayout
                 android:layout_width="match_parent"
@@ -194,6 +212,7 @@
             </LinearLayout>
 
         </LinearLayout>
+        
 
     </LinearLayout>
 
