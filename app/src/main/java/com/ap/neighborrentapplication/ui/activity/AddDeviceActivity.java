@@ -21,8 +21,15 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
-import java.util.UUID;
-import okhttp3.*;
+
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.FormBody;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+
 
 public class AddDeviceActivity extends AppCompatActivity {
     private static final int REQUEST_CODE_IMAGE_PICK = 1001;
@@ -54,7 +61,6 @@ public class AddDeviceActivity extends AppCompatActivity {
         buttonUploadImage = findViewById(R.id.button_upload_image);
         imageViewPreview = findViewById(R.id.imageView_preview);
         categorySpinner = findViewById(R.id.spinner_category);
-
 
         loadOwnerData();
 
@@ -175,7 +181,6 @@ public class AddDeviceActivity extends AppCompatActivity {
         }
 
         HashMap<String, Object> deviceData = new HashMap<>();
-        deviceData.put("id", UUID.randomUUID().toString());
         deviceData.put("name", name);
         deviceData.put("description", description);
         deviceData.put("imageUrl", imageUrl);
