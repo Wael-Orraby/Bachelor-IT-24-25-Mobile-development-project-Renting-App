@@ -42,6 +42,7 @@ public class DashboardActivity extends AppCompatActivity {
     private TextView homeBtnTxt;
     private  ImageView searchBtn;
     private  ImageView profileBtn;
+    private ImageView reservationsBtn;
 
     private View favoritesSection;
 
@@ -74,12 +75,12 @@ public class DashboardActivity extends AppCompatActivity {
         searchBtn.setOnClickListener(v ->  startActivity(new Intent(DashboardActivity.this, CategorySearchActivity.class)));
         searchBtn = findViewById(R.id.searchBtn);
 
-
         profileBtn = findViewById(R.id.profileBtn);
         profileBtn.setOnClickListener(v ->  startActivity(new Intent(DashboardActivity.this, ProfileActivity.class)));
 
 
-
+        reservationsBtn = findViewById(R.id.reservationsBtn);
+        reservationsBtn.setOnClickListener(v -> startActivity(new Intent(DashboardActivity.this, ReservationHistoryActivity.class)));
 
         favoritesSection = findViewById(R.id.favoritesSection);
         favoritesSectionIcon = findViewById(R.id.imageView8);

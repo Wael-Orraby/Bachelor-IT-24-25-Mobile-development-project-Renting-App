@@ -1,5 +1,6 @@
 package com.ap.neighborrentapplication.adapter;
 
+import android.app.DatePickerDialog;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -13,17 +14,22 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.ap.neighborrentapplication.R;
 import com.ap.neighborrentapplication.models.Device;
+import com.ap.neighborrentapplication.models.Reservation;
 import com.ap.neighborrentapplication.ui.activity.DashboardActivity;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.bitmap.GranularRoundedCorners;
+import com.google.android.material.button.MaterialButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.CollectionReference;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 public class DevicesAdapter extends RecyclerView.Adapter<DevicesAdapter.ViewHolder> {
@@ -58,6 +64,20 @@ public class DevicesAdapter extends RecyclerView.Adapter<DevicesAdapter.ViewHold
         holder.price.setText("€" + device.getPricePerDay() + " per dag");
         holder.city.setText(device.getPostalCode()+" "+device.getCity());
         holder.status.setText(device.getAvailable() ? "Beschikbaar" : "Niet beschikbaar");
+
+        // Check if current user is the owner
+        String currentUserId = auth.getCurrentUser().getUid();
+        boolean isOwner = device.getOwnerId().equals(currentUserId);
+
+        // Toon of verberg de reserveerknop op basis van beschikbaarheid en eigenaarschap
+        holder.reserveButton.setVisibility(
+            (device.getAvailable() && !isOwner) ? View.VISIBLE : View.GONE
+        );
+
+        // Voeg click listener toe aan de reserveerknop als de gebruiker niet de eigenaar is
+        if (!isOwner) {
+            holder.reserveButton.setOnClickListener(v -> showReservationDialog(device));
+        }
 
         // Laad de afbeelding met Glide en gebruik afgeronde hoeken
         Glide.with(context)
@@ -133,6 +153,160 @@ public class DevicesAdapter extends RecyclerView.Adapter<DevicesAdapter.ViewHold
                 );
     }
 
+    // Methode om te controleren of een periode beschikbaar is
+    private void checkAvailability(String deviceId, Date startDate, Date endDate, OnAvailabilityCheckListener listener) {
+        firestore.collection("reservations")
+            .whereEqualTo("deviceId", deviceId)
+            .whereEqualTo("status", "accepted")
+            .get()
+            .addOnSuccessListener(queryDocumentSnapshots -> {
+                boolean isAvailable = true;
+                String conflictMessage = null;
+
+                for (DocumentSnapshot document : queryDocumentSnapshots.getDocuments()) {
+                    Reservation existingReservation = document.toObject(Reservation.class);
+                    if (existingReservation != null) {
+                        // Check if dates overlap
+                        if (!(endDate.before(existingReservation.getStartDate()) || 
+                            startDate.after(existingReservation.getEndDate()))) {
+                            isAvailable = false;
+                            SimpleDateFormat dateFormat = new SimpleDateFormat("dd MMM yyyy", new Locale("nl"));
+                            conflictMessage = String.format("Dit apparaat is al gereserveerd van %s tot %s",
+                                dateFormat.format(existingReservation.getStartDate()),
+                                dateFormat.format(existingReservation.getEndDate()));
+                            break;
+                        }
+                    }
+                }
+                
+                listener.onResult(isAvailable, conflictMessage);
+            })
+            .addOnFailureListener(e -> {
+                listener.onResult(false, "Fout bij het controleren van beschikbaarheid: " + e.getMessage());
+            });
+    }
+
+    // Interface voor availability check callback
+    private interface OnAvailabilityCheckListener {
+        void onResult(boolean isAvailable, String message);
+    }
+
+    // Methode om totaalprijs te berekenen en bij te werken
+    private void updateTotalPrice(Calendar startDate, Calendar endDate, double pricePerDay, TextView totalPriceText) {
+        if (startDate != null && endDate != null && 
+            startDate.getTime().after(new Date(System.currentTimeMillis() - 1000 * 60 * 60 * 24))) {
+            
+            // Bereken het aantal dagen (inclusief dezelfde dag)
+            long diffInMillis = endDate.getTimeInMillis() - startDate.getTimeInMillis();
+            int days = (int) (diffInMillis / (1000 * 60 * 60 * 24)) + 1;
+            double totalPrice = days * pricePerDay;
+            totalPriceText.setText(String.format(Locale.getDefault(), "€%.2f", totalPrice));
+        } else {
+            totalPriceText.setText("€0.00");
+        }
+    }
+
+    // Methode om de reserveringsdialog te tonen
+    private void showReservationDialog(Device device) {
+        // Dialog aanmaken
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(context);
+        View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_reservation, null);
+        builder.setView(dialogView);
+
+        // Dialog elementen ophalen
+        com.google.android.material.textfield.TextInputEditText startDateInput = dialogView.findViewById(R.id.startDateInput);
+        com.google.android.material.textfield.TextInputEditText endDateInput = dialogView.findViewById(R.id.endDateInput);
+        TextView totalPriceText = dialogView.findViewById(R.id.totalPriceText);
+        MaterialButton submitButton = dialogView.findViewById(R.id.submitButton);
+
+        // Calendar instanties voor datum selectie
+        Calendar startDate = Calendar.getInstance();
+        Calendar endDate = Calendar.getInstance();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy", Locale.getDefault());
+
+        // Click listeners voor datum velden
+        startDateInput.setOnClickListener(v -> {
+            DatePickerDialog datePickerDialog = new DatePickerDialog(context,
+                    (view, year, month, dayOfMonth) -> {
+                        startDate.set(year, month, dayOfMonth);
+                        startDateInput.setText(dateFormat.format(startDate.getTime()));
+                        // Reset end date als die voor de start date ligt
+                        if (endDate.getTimeInMillis() < startDate.getTimeInMillis()) {
+                            endDate.setTimeInMillis(startDate.getTimeInMillis());
+                            endDateInput.setText(dateFormat.format(endDate.getTime()));
+                        }
+                        updateTotalPrice(startDate, endDate, device.getPricePerDay(), totalPriceText);
+                    },
+                    startDate.get(Calendar.YEAR),
+                    startDate.get(Calendar.MONTH),
+                    startDate.get(Calendar.DAY_OF_MONTH));
+            datePickerDialog.getDatePicker().setMinDate(System.currentTimeMillis());
+            datePickerDialog.show();
+        });
+
+        endDateInput.setOnClickListener(v -> {
+            DatePickerDialog datePickerDialog = new DatePickerDialog(context,
+                    (view, year, month, dayOfMonth) -> {
+                        endDate.set(year, month, dayOfMonth);
+                        endDateInput.setText(dateFormat.format(endDate.getTime()));
+                        updateTotalPrice(startDate, endDate, device.getPricePerDay(), totalPriceText);
+                    },
+                    endDate.get(Calendar.YEAR),
+                    endDate.get(Calendar.MONTH),
+                    endDate.get(Calendar.DAY_OF_MONTH));
+            datePickerDialog.getDatePicker().setMinDate(startDate.getTimeInMillis());
+            datePickerDialog.show();
+        });
+
+        // Dialog aanmaken en tonen
+        android.app.AlertDialog dialog = builder.create();
+        dialog.show();
+
+        // Submit button click listener
+        submitButton.setOnClickListener(v -> {
+            if (startDateInput.getText().toString().isEmpty() || endDateInput.getText().toString().isEmpty()) {
+                Toast.makeText(context, "Selecteer eerst begin- en einddatum", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Controleer beschikbaarheid voordat we de reservering maken
+            checkAvailability(device.getId(), startDate.getTime(), endDate.getTime(), (isAvailable, message) -> {
+                if (!isAvailable) {
+                    Toast.makeText(context, message, Toast.LENGTH_LONG).show();
+                    return;
+                }
+
+                // Bereken totale prijs (inclusief dezelfde dag)
+                long diffInMillis = endDate.getTimeInMillis() - startDate.getTimeInMillis();
+                int days = (int) (diffInMillis / (1000 * 60 * 60 * 24)) + 1;
+                double totalPrice = days * device.getPricePerDay();
+
+                // Maak nieuwe reservering
+                String currentUserId = auth.getCurrentUser().getUid();
+                Reservation reservation = new Reservation(
+                    device.getId(),
+                    currentUserId,
+                    device.getOwnerId(),
+                    startDate.getTime(),
+                    endDate.getTime(),
+                    totalPrice
+                );
+
+                // Sla reservering op in Firebase
+                firestore.collection("reservations")
+                    .add(reservation)
+                    .addOnSuccessListener(documentReference -> {
+                        Toast.makeText(context, "Reserveringsaanvraag verzonden!", Toast.LENGTH_SHORT).show();
+                        dialog.dismiss();
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(context, "Fout bij verzenden aanvraag: " + e.getMessage(), 
+                            Toast.LENGTH_SHORT).show();
+                    });
+            });
+        });
+    }
+
     @Override
     public int getItemCount() {
         return devices.size();
@@ -142,6 +316,7 @@ public class DevicesAdapter extends RecyclerView.Adapter<DevicesAdapter.ViewHold
     public static class ViewHolder extends RecyclerView.ViewHolder {
         TextView title, subtitle, price, city, status;
         ImageView pic, favoriteIcon;
+        MaterialButton reserveButton;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -154,6 +329,7 @@ public class DevicesAdapter extends RecyclerView.Adapter<DevicesAdapter.ViewHold
             status = itemView.findViewById(R.id.statusTxt);
             pic = itemView.findViewById(R.id.pic);
             favoriteIcon = itemView.findViewById(R.id.favoriteIcon);
+            reserveButton = itemView.findViewById(R.id.reserveButton);
         }
     }
 
