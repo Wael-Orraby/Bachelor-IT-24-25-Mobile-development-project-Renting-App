@@ -72,8 +72,8 @@ public class ReservationHistoryActivity extends AppCompatActivity {
     }
 
     private void setupViewPager() {
-        rentAdapter = new GroupedReservationAdapter(false);
-        leaseAdapter = new GroupedReservationAdapter(true);
+        rentAdapter = new GroupedReservationAdapter(false, this);
+        leaseAdapter = new GroupedReservationAdapter(true, this);
 
         viewPager.setAdapter(new ReservationPagerAdapter());
 

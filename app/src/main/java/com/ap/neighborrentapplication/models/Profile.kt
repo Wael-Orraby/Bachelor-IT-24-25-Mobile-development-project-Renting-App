@@ -7,9 +7,9 @@ data class Profile(
     val phoneNumber: String = "",
     val location: String = "",
     val profileImageUrl: String = "",
-    val itemsRented: Int = 0,
-    val rating: Double = 0.0,
-    val responseRatio: Int = 0,
+    var itemsRented: Int = 0,
+    var rating: Double = 0.0,
+    var responseRatio: Int = 0,
     val isActive: Boolean = true
 ) {
     // Lege constructor voor Firebase
