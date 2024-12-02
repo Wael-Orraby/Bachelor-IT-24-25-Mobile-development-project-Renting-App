@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp">
+
+        <EditText
+            android:id="@+id/editTextText"
+            android:layout_width="0dp"
+            android:layout_height="55dp"
+            android:layout_weight="1"
+            android:background="@drawable/edittet_background"
+            android:drawableStart="@drawable/search"
+            android:drawablePadding="16dp"
+            android:hint="Zoeken..."
+            android:layout_marginTop="50dp"
+            android:inputType="text"
+            android:padding="16dp" />
+
+        <Spinner
+            android:id="@+id/radiusSpinner"
+            android:layout_width="wrap_content"
+            android:layout_marginTop="50dp"
+
+            android:layout_height="55dp"
+            android:layout_marginStart="8dp" />
+
+    </LinearLayout>
+
+    <org.osmdroid.views.MapView
+        android:id="@+id/mapView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+</LinearLayout> 

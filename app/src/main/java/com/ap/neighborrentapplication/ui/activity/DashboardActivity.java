@@ -5,6 +5,7 @@ import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -70,6 +71,16 @@ public class DashboardActivity extends AppCompatActivity {
 
         fabAddDevice = findViewById(R.id.fab_add_device);
         fabAddDevice.setOnClickListener(v -> startActivity(new Intent(DashboardActivity.this, AddDeviceActivity.class)));
+
+
+        EditText searchEditText = findViewById(R.id.editTextText);
+searchEditText.setOnClickListener(v -> {
+    Intent intent = new Intent(DashboardActivity.this, MapSearchActivity.class);
+    startActivity(intent);
+});
+
+        profileBtn = findViewById(R.id.searchBtn);
+        profileBtn.setOnClickListener(v ->  startActivity(new Intent(DashboardActivity.this, CategorySearchActivity.class)));
 
         searchBtn = findViewById(R.id.searchBtn);
         searchBtn.setOnClickListener(v ->  startActivity(new Intent(DashboardActivity.this, CategorySearchActivity.class)));
