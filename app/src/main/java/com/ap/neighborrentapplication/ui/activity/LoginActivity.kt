@@ -2,6 +2,7 @@ package com.ap.neighborrentapplication.ui.activity
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Patterns
 import android.widget.Toast
 import com.google.firebase.auth.FirebaseAuth
 import com.ap.neighborrentapplication.databinding.ActivityLoginBinding
@@ -41,6 +42,12 @@ class LoginActivity : BaseActivity() {
     private fun loginUser(email: String, password: String) {
         if (email.isEmpty() || password.isEmpty()) {
             Toast.makeText(this, "Vul alle velden in.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // E-mail validatie
+        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            Toast.makeText(this, "Ongeldig e-mailadres.", Toast.LENGTH_SHORT).show()
             return
         }
 

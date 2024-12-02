@@ -8,5 +8,10 @@ data class User(
     val streetNumber: String = "",
     val city: String = "",
     val postalCode: String = "",
-    val email: String = ""
+    val email: String = "",
+    var itemsRented: Int = 0,
+    var rating: Double = 0.0,
+    var responseRatio: Int = 0,
+    var isActive: Boolean = true,
+    var profileImageUrl: String = ""
 )

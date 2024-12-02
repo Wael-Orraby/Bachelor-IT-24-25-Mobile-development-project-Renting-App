@@ -11,5 +11,9 @@
     <color name="light_blue">#F2F1F6</color>
     <color name="buttonColor">#4A3F95</color>
     <color name="light_gray">#F9F9F9</color>
+    <color name="pending_color">#FFA000</color>
+    <color name="accepted_color">#4CAF50</color>
+    <color name="completed_color">#2196F3</color>
+    <color name="rejected_color">#F44336</color>
 
 </resources>
