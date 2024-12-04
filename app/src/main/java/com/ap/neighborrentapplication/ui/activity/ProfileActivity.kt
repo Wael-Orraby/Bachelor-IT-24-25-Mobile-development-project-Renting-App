@@ -14,33 +14,51 @@ import com.bumptech.glide.Glide
 import android.widget.Toast
 import com.ap.neighborrentapplication.R
 import android.util.Log
+import androidx.appcompat.app.AppCompatActivity
 
-class ProfileActivity : BaseActivity() {
+class ProfileActivity : AppCompatActivity() {
     private lateinit var binding: ActivityProfileBinding
-    private lateinit var profileAdapter: ProfileAdapter
     private lateinit var devicesAdapter: DevicesAdapter
+    private var currentProfile: Profile? = null
+    private var isEditMode = false
     private lateinit var firestore: FirebaseFirestore
     private lateinit var auth: FirebaseAuth
-    private var isEditMode = false
-    private var currentProfile: Profile? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityProfileBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        setupToolbar("Mijn Profiel", true)
 
+        // Initialize Firebase instances first
         firestore = FirebaseFirestore.getInstance()
         auth = FirebaseAuth.getInstance()
+
+        // Get userId from intent, if not provided use current user's ID
+        val userId = intent.getStringExtra("userId") ?: auth.currentUser?.uid
+        val isCurrentUser = userId == auth.currentUser?.uid
+
+        // Set toolbar title based on whether viewing own or other's profile
+        setupToolbar(if (isCurrentUser) "Mijn Profiel" else "Profiel", true)
 
         // Zet initiële waarden voor statistieken
         binding.itemsRentedCount.text = "0"
         binding.averageRating.text = "0.0"
         binding.responseRatio.text = "0%"
 
+        // Only show edit button for own profile
+        binding.editProfileFab.visibility = if (isCurrentUser) View.VISIBLE else View.GONE
+
         setupRecyclerView()
-        setupProfileData()
-        loadUserDevices()
+        
+        // Only proceed if we have a valid userId
+        if (userId != null) {
+            setupProfileData(userId)
+            loadUserDevices(userId)
+        } else {
+            showToast("Fout bij laden profiel: Geen gebruiker ID gevonden")
+            finish() // Close activity if no valid user ID
+            return
+        }
 
         binding.editProfileFab.setOnClickListener {
             if (isEditMode) {
@@ -61,8 +79,8 @@ class ProfileActivity : BaseActivity() {
         }
     }
 
-    private fun setupProfileData() {
-        val userId = auth.currentUser?.uid ?: return
+    private fun setupProfileData(userId: String?) {
+        if (userId == null) return
         
         // Haal gebruikersgegevens op
         firestore.collection("users").document(userId)
@@ -317,23 +335,27 @@ class ProfileActivity : BaseActivity() {
         }
     }
 
-    private fun loadUserDevices() {
-        val userId = auth.currentUser?.uid ?: return
-        
+    private fun loadUserDevices(userId: String?) {
+        if (userId == null) return
+
         firestore.collection("devices")
             .whereEqualTo("ownerId", userId)
-            .addSnapshotListener { snapshot, e ->
-                if (e != null) {
-                    return@addSnapshotListener
-                }
-
+            .get()
+            .addOnSuccessListener { documents ->
                 val devicesList = ArrayList<Device>()
-                snapshot?.forEach { document ->
-                    document.toObject(Device::class.java).let {
-                        devicesList.add(it)
-                    }
+                for (document in documents) {
+                    val device = document.toObject(Device::class.java)
+                    device.id = document.id
+                    devicesList.add(device)
                 }
                 devicesAdapter.updateDevices(devicesList)
+                
+                // Update items count
+                binding.itemsRentedCount.text = devicesList.size.toString()
+            }
+            .addOnFailureListener { exception ->
+                Log.e("ProfileActivity", "Error getting devices: ", exception)
+                showToast("Error loading devices")
             }
     }
 
@@ -395,7 +417,7 @@ class ProfileActivity : BaseActivity() {
             .update(updates as Map<String, Any>)
             .addOnSuccessListener {
                 toggleEditMode(false)
-                setupProfileData()
+                setupProfileData(userId)
                 showToast("Profiel succesvol bijgewerkt!")
             }
             .addOnFailureListener { e ->
@@ -405,5 +427,19 @@ class ProfileActivity : BaseActivity() {
 
     private fun showToast(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun setupToolbar(title: String, showBackButton: Boolean) {
+        setSupportActionBar(binding.toolbar)
+        supportActionBar?.apply {
+            setTitle(title)
+            setDisplayHomeAsUpEnabled(showBackButton)
+            setDisplayShowHomeEnabled(showBackButton)
+        }
+    }
+
+    override fun onSupportNavigateUp(): Boolean {
+        onBackPressed()
+        return true
     }
 }

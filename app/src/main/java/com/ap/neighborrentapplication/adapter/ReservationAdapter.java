@@ -1,6 +1,7 @@
 package com.ap.neighborrentapplication.adapter;
 
 import android.content.Context;
+import android.content.Intent;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -13,6 +14,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.ap.neighborrentapplication.R;
 import com.ap.neighborrentapplication.models.Device;
 import com.ap.neighborrentapplication.models.Reservation;
+import com.ap.neighborrentapplication.ui.activity.ProfileActivity;
 import com.bumptech.glide.Glide;
 import com.google.android.material.chip.Chip;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -93,7 +95,7 @@ public class ReservationAdapter extends RecyclerView.Adapter<ReservationAdapter.
         Log.d(TAG, "Loading renter with ID: " + renterId);
         
         if (renterId != null && !renterId.isEmpty()) {
-            holder.renterName.setText("Loading...");
+            holder.ownerName.setText("Laden...");
             db.collection("users")
                 .document(renterId)
                 .get()
@@ -104,23 +106,45 @@ public class ReservationAdapter extends RecyclerView.Adapter<ReservationAdapter.
                         Log.d(TAG, "Renter data loaded - firstName: " + firstName + ", lastName: " + lastName);
                         if (firstName != null && lastName != null) {
                             String fullName = firstName + " " + lastName;
-                            holder.renterName.setText(fullName);
+                            holder.ownerName.setText(fullName);
                             Log.d(TAG, "Setting renter name to: " + fullName);
+                            
+                            // Add click listener to owner container
+                            if (holder.ownerContainer != null) {
+                                holder.ownerContainer.setOnClickListener(v -> {
+                                    Intent intent = new Intent(context, ProfileActivity.class);
+                                    intent.putExtra("userId", renterId);
+                                    context.startActivity(intent);
+                                });
+                                holder.ownerContainer.setClickable(true);
+                            }
                         } else {
-                            holder.renterName.setText("Onbekende gebruiker");
+                            holder.ownerName.setText("Onbekende gebruiker");
+                            if (holder.ownerContainer != null) {
+                                holder.ownerContainer.setClickable(false);
+                            }
                             Log.d(TAG, "Renter name fields are null");
                         }
                     } else {
-                        holder.renterName.setText("Gebruiker niet gevonden");
+                        holder.ownerName.setText("Gebruiker niet gevonden");
+                        if (holder.ownerContainer != null) {
+                            holder.ownerContainer.setClickable(false);
+                        }
                         Log.d(TAG, "Renter document does not exist");
                     }
                 })
                 .addOnFailureListener(e -> {
-                    holder.renterName.setText("Fout bij laden gebruiker");
+                    holder.ownerName.setText("Fout bij laden gebruiker");
+                    if (holder.ownerContainer != null) {
+                        holder.ownerContainer.setClickable(false);
+                    }
                     Log.e(TAG, "Error loading renter: " + e.getMessage(), e);
                 });
         } else {
-            holder.renterName.setText("Geen huurder ID");
+            holder.ownerName.setText("Geen huurder ID");
+            if (holder.ownerContainer != null) {
+                holder.ownerContainer.setClickable(false);
+            }
             Log.d(TAG, "No renter ID available");
         }
         
@@ -193,23 +217,25 @@ public class ReservationAdapter extends RecyclerView.Adapter<ReservationAdapter.
     }
     
     public static class ReservationViewHolder extends RecyclerView.ViewHolder {
+        ImageView deviceImage;
         TextView deviceName;
+        TextView ownerName;
         TextView reservationDates;
         TextView totalPrice;
         TextView durationText;
-        TextView renterName;
-        ImageView deviceImage;
         Chip statusChip;
-        
+        View ownerContainer;
+
         public ReservationViewHolder(@NonNull View itemView) {
             super(itemView);
+            deviceImage = itemView.findViewById(R.id.deviceImage);
             deviceName = itemView.findViewById(R.id.deviceName);
+            ownerName = itemView.findViewById(R.id.ownerName);
             reservationDates = itemView.findViewById(R.id.reservationDates);
             totalPrice = itemView.findViewById(R.id.totalPrice);
             durationText = itemView.findViewById(R.id.durationText);
-            deviceImage = itemView.findViewById(R.id.deviceImage);
             statusChip = itemView.findViewById(R.id.statusChip);
-            renterName = itemView.findViewById(R.id.renterName);
+            ownerContainer = itemView.findViewById(R.id.ownerContainer);
         }
     }
 }

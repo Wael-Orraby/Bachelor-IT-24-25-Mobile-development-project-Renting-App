@@ -75,11 +75,15 @@
 
             <!-- Renter Name -->
             <LinearLayout
+                android:id="@+id/renterContainer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:layout_marginTop="8dp"
-                android:gravity="center_vertical">
+                android:gravity="center_vertical"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true">
 
                 <ImageView
                     android:layout_width="16dp"
@@ -93,8 +97,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
                     android:textSize="14sp"
-                    android:textColor="#757575"
-                    tools:text="Jan Janssens"/>
+                    android:textColor="#757575"/>
 
             </LinearLayout>
 
@@ -175,6 +178,7 @@
                     tools:text="€25.00"/>
 
             </LinearLayout>
+
 
             <!-- Action Buttons -->
             <LinearLayout

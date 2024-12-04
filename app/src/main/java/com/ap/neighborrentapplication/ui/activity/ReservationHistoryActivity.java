@@ -1,6 +1,7 @@
 package com.ap.neighborrentapplication.ui.activity;
 
 import android.content.Context;
+import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
@@ -72,8 +73,17 @@ public class ReservationHistoryActivity extends AppCompatActivity {
     }
 
     private void setupViewPager() {
-        rentAdapter = new GroupedReservationAdapter(false, this);
-        leaseAdapter = new GroupedReservationAdapter(true, this);
+        rentAdapter = new GroupedReservationAdapter(false, this, userId -> {
+            Intent intent = new Intent(this, ProfileActivity.class);
+            intent.putExtra("userId", userId);
+            startActivity(intent);
+        });
+        
+        leaseAdapter = new GroupedReservationAdapter(true, this, userId -> {
+            Intent intent = new Intent(this, ProfileActivity.class);
+            intent.putExtra("userId", userId);
+            startActivity(intent);
+        });
 
         viewPager.setAdapter(new ReservationPagerAdapter());
 

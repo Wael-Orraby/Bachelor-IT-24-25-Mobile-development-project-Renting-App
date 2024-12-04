@@ -1,6 +1,7 @@
 package com.ap.neighborrentapplication.adapter;
 
 import android.content.Context;
+import android.content.Intent;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -14,6 +15,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.ap.neighborrentapplication.R;
 import com.ap.neighborrentapplication.models.Device;
 import com.ap.neighborrentapplication.models.Reservation;
+import com.ap.neighborrentapplication.ui.activity.ProfileActivity;
 import com.bumptech.glide.Glide;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.Chip;
@@ -69,15 +71,48 @@ public class LeaseReservationAdapter extends RecyclerView.Adapter<LeaseReservati
             });
             
         // Load renter details
-        db.collection("users")
-            .document(reservation.getRenterId())
-            .get()
-            .addOnSuccessListener(documentSnapshot -> {
-                String renterName = documentSnapshot.getString("name");
-                if (renterName != null) {
-                    holder.renterName.setText("Huurder: " + renterName);
-                }
-            });
+        String renterId = reservation.getRenterId();
+        if (renterId != null && !renterId.isEmpty()) {
+            holder.ownerName.setText("Laden...");
+            db.collection("users")
+                .document(renterId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    String firstName = documentSnapshot.getString("firstName");
+                    String lastName = documentSnapshot.getString("lastName");
+                    if (firstName != null && lastName != null) {
+                        String fullName = firstName + " " + lastName;
+                        holder.ownerName.setText(fullName);
+                        
+                        // Add click listener to owner container
+                        if (holder.ownerContainer != null) {
+                            holder.ownerContainer.setOnClickListener(v -> {
+                                Intent intent = new Intent(context, ProfileActivity.class);
+                                intent.putExtra("userId", renterId);
+                                context.startActivity(intent);
+                            });
+                            holder.ownerContainer.setClickable(true);
+                        }
+                    } else {
+                        holder.ownerName.setText("Onbekende gebruiker");
+                        if (holder.ownerContainer != null) {
+                            holder.ownerContainer.setClickable(false);
+                        }
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    holder.ownerName.setText("Fout bij laden gebruiker");
+                    if (holder.ownerContainer != null) {
+                        holder.ownerContainer.setClickable(false);
+                    }
+                    Log.e(TAG, "Error loading renter: " + e.getMessage(), e);
+                });
+        } else {
+            holder.ownerName.setText("Geen huurder ID");
+            if (holder.ownerContainer != null) {
+                holder.ownerContainer.setClickable(false);
+            }
+        }
         
         // Set reservation dates
         String dateRange = String.format("%s - %s",
@@ -176,25 +211,27 @@ public class LeaseReservationAdapter extends RecyclerView.Adapter<LeaseReservati
     static class LeaseViewHolder extends RecyclerView.ViewHolder {
         ImageView deviceImage;
         TextView deviceName;
-        TextView renterName;
+        TextView ownerName;
         TextView reservationDates;
         TextView totalPrice;
         Chip statusChip;
         LinearLayout actionButtons;
         MaterialButton acceptButton;
         MaterialButton rejectButton;
+        View ownerContainer;
         
         LeaseViewHolder(View itemView) {
             super(itemView);
             deviceImage = itemView.findViewById(R.id.deviceImage);
             deviceName = itemView.findViewById(R.id.deviceName);
-            renterName = itemView.findViewById(R.id.renterName);
+            ownerName = itemView.findViewById(R.id.ownerName);
             reservationDates = itemView.findViewById(R.id.reservationDates);
             totalPrice = itemView.findViewById(R.id.totalPrice);
             statusChip = itemView.findViewById(R.id.statusChip);
             actionButtons = itemView.findViewById(R.id.actionButtons);
             acceptButton = itemView.findViewById(R.id.acceptButton);
             rejectButton = itemView.findViewById(R.id.rejectButton);
+            ownerContainer = itemView.findViewById(R.id.ownerContainer);
         }
     }
 }
