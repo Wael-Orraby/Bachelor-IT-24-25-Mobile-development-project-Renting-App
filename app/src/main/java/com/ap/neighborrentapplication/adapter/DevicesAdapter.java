@@ -3,12 +3,14 @@ package com.ap.neighborrentapplication.adapter;
 import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.RatingBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -21,7 +23,9 @@ import com.ap.neighborrentapplication.R;
 import com.ap.neighborrentapplication.models.Device;
 import com.ap.neighborrentapplication.models.Reservation;
 import com.ap.neighborrentapplication.models.Review;
+import com.ap.neighborrentapplication.models.User;
 import com.ap.neighborrentapplication.ui.activity.DashboardActivity;
+import com.ap.neighborrentapplication.ui.activity.ProfileActivity;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.bitmap.GranularRoundedCorners;
 import com.google.android.material.button.MaterialButton;
@@ -77,6 +81,37 @@ public class DevicesAdapter extends RecyclerView.Adapter<DevicesAdapter.ViewHold
         // Check if current user is the owner
         String currentUserId = auth.getCurrentUser().getUid();
         boolean isOwner = device.getOwnerId().equals(currentUserId);
+
+        // Load owner information
+        firestore.collection("users")
+                .document(device.getOwnerId())
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        String firstName = documentSnapshot.getString("firstName");
+                        String lastName = documentSnapshot.getString("lastName");
+                        String profileImageUrl = documentSnapshot.getString("profileImageUrl");
+                        
+                        if (firstName != null && lastName != null) {
+                            holder.ownerName.setText(firstName + " " + lastName);
+                        }
+                        
+                        if (profileImageUrl != null && !profileImageUrl.isEmpty()) {
+                            Glide.with(context)
+                                    .load(profileImageUrl)
+                                    .placeholder(R.drawable.ic_profile_placeholder)
+                                    .error(R.drawable.ic_profile_placeholder)
+                                    .into(holder.ownerImage);
+                        }
+
+                        // Set click listener to open owner's profile
+                        holder.ownerContainer.setOnClickListener(v -> {
+                            Intent intent = new Intent(context, ProfileActivity.class);
+                            intent.putExtra("userId", device.getOwnerId());
+                            context.startActivity(intent);
+                        });
+                    }
+                });
 
         // Toon of verberg de reserveerknop op basis van beschikbaarheid en eigenaarschap
         holder.reserveButton.setVisibility(
@@ -402,27 +437,33 @@ public class DevicesAdapter extends RecyclerView.Adapter<DevicesAdapter.ViewHold
 
     // ViewHolder Klasse voor referentie naar de UI elementen
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView title, subtitle, price, city, status, ratingText;
-        ImageView pic, favoriteIcon;
+        ImageView pic;
+        TextView title, subtitle, price, city, status;
         MaterialButton reserveButton;
+        ImageView favoriteIcon;
+        LinearLayout ratingContainer;
         RatingBar averageRatingBar;
-        View ratingContainer;
+        TextView ratingText;
+        ImageView ownerImage;
+        TextView ownerName;
+        LinearLayout ownerContainer;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
-
-            // Initialiseer de views
+            pic = itemView.findViewById(R.id.pic);
             title = itemView.findViewById(R.id.titleTxt);
             subtitle = itemView.findViewById(R.id.descriptionTxt);
             price = itemView.findViewById(R.id.priceTxt);
             city = itemView.findViewById(R.id.cityTxt);
             status = itemView.findViewById(R.id.statusTxt);
-            pic = itemView.findViewById(R.id.pic);
-            favoriteIcon = itemView.findViewById(R.id.favoriteIcon);
             reserveButton = itemView.findViewById(R.id.reserveButton);
+            favoriteIcon = itemView.findViewById(R.id.favoriteIcon);
+            ratingContainer = itemView.findViewById(R.id.ratingContainer);
             averageRatingBar = itemView.findViewById(R.id.averageRatingBar);
             ratingText = itemView.findViewById(R.id.ratingText);
-            ratingContainer = itemView.findViewById(R.id.ratingContainer);
+            ownerImage = itemView.findViewById(R.id.ownerImage);
+            ownerName = itemView.findViewById(R.id.ownerName);
+            ownerContainer = itemView.findViewById(R.id.ownerContainer);
         }
     }
 

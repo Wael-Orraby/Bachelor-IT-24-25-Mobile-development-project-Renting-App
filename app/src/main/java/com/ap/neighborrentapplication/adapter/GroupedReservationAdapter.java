@@ -48,13 +48,20 @@ public class GroupedReservationAdapter extends RecyclerView.Adapter<RecyclerView
     private SimpleDateFormat dateFormat;
     private FirebaseAuth auth;
     private Context context;
-    
-    public GroupedReservationAdapter(boolean isLeaseView, Context context) {
+    private OnUserClickListener userClickListener;
+    private String currentlyExpandedGroup = null;
+
+    public interface OnUserClickListener {
+        void onUserClick(String userId);
+    }
+
+    public GroupedReservationAdapter(boolean isLeaseView, Context context, OnUserClickListener listener) {
         this.isLeaseView = isLeaseView;
         this.context = context;
         this.db = FirebaseFirestore.getInstance();
         this.auth = FirebaseAuth.getInstance();
         this.dateFormat = new SimpleDateFormat("dd MMM yyyy", new Locale("nl"));
+        this.userClickListener = listener;
         setupStatusTranslations();
         initExpandedStates();
     }
@@ -67,10 +74,10 @@ public class GroupedReservationAdapter extends RecyclerView.Adapter<RecyclerView
     }
     
     private void initExpandedStates() {
-        expandedStates.put("In Afwachting", true); // Standaard open
-        expandedStates.put("Geaccepteerd", false);
-        expandedStates.put("Afgerond", false);
-        expandedStates.put("Geweigerd", false);
+        expandedStates.clear();
+        for (String translatedStatus : statusTranslations.values()) {
+            expandedStates.put(translatedStatus, false);
+        }
     }
     
     public void updateReservations(List<Reservation> reservations) {
@@ -78,6 +85,9 @@ public class GroupedReservationAdapter extends RecyclerView.Adapter<RecyclerView
         items.clear();
         allReservations.clear();
         allReservations.addAll(reservations);
+        
+        currentlyExpandedGroup = null;
+        
         Map<String, List<Reservation>> groupedReservations = new LinkedHashMap<>();
         
         // Initialize groups in desired order
@@ -101,18 +111,15 @@ public class GroupedReservationAdapter extends RecyclerView.Adapter<RecyclerView
         for (Map.Entry<String, List<Reservation>> entry : groupedReservations.entrySet()) {
             String translatedStatus = statusTranslations.get(entry.getKey());
             if (!entry.getValue().isEmpty()) {
-                Log.d("GroupedAdapter", "Adding group " + translatedStatus + " with " + entry.getValue().size() + " items");
                 // Add header with count
                 items.add(new GroupHeader(translatedStatus, entry.getValue().size()));
-                // Add items if expanded
-                if (expandedStates.get(translatedStatus)) {
-                    Log.d("GroupedAdapter", "Group " + translatedStatus + " is expanded, adding items");
+                // Add items only if this group is expanded
+                if (translatedStatus.equals(currentlyExpandedGroup)) {
                     items.addAll(entry.getValue());
                 }
             }
         }
         
-        Log.d("GroupedAdapter", "Total items after update: " + items.size());
         notifyDataSetChanged();
     }
     
@@ -239,6 +246,55 @@ public class GroupedReservationAdapter extends RecyclerView.Adapter<RecyclerView
                         }
                     });
             }
+
+            // Voor gehuurde apparaten (rentals)
+            if (!isLeaseView) {
+                itemHolder.ownerContainer.setOnClickListener(v -> {
+                    if (userClickListener != null && reservation.getOwnerId() != null) {
+                        userClickListener.onUserClick(reservation.getOwnerId());
+                    }
+                });
+            }
+            // Voor verhuurde apparaten (leases)
+            else {
+                itemHolder.renterContainer.setOnClickListener(v -> {
+                    if (userClickListener != null && reservation.getRenterId() != null) {
+                        userClickListener.onUserClick(reservation.getRenterId());
+                    }
+                });
+            }
+
+            if (!isLeaseView) {
+                // Load owner name voor Mijn Huren view
+                db.collection("users")
+                    .document(reservation.getOwnerId())
+                    .get()
+                    .addOnSuccessListener(documentSnapshot -> {
+                        String firstName = documentSnapshot.getString("firstName");
+                        String lastName = documentSnapshot.getString("lastName");
+                        if (firstName != null && lastName != null && itemHolder.ownerName != null) {
+                            itemHolder.ownerName.setText(firstName + " " + lastName);
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.e(TAG, "Error loading owner details", e);
+                    });
+            } else {
+                // Load renter name voor Mijn Verhuren view
+                db.collection("users")
+                    .document(reservation.getRenterId())
+                    .get()
+                    .addOnSuccessListener(documentSnapshot -> {
+                        String firstName = documentSnapshot.getString("firstName");
+                        String lastName = documentSnapshot.getString("lastName");
+                        if (firstName != null && lastName != null && itemHolder.renterName != null) {
+                            itemHolder.renterName.setText(firstName + " " + lastName);
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.e(TAG, "Error loading renter details", e);
+                    });
+            }
         }
     }
     
@@ -355,52 +411,136 @@ public class GroupedReservationAdapter extends RecyclerView.Adapter<RecyclerView
     }
 
     private void toggleGroup(String groupTitle, int headerPosition) {
-        boolean isExpanded = expandedStates.get(groupTitle);
-        expandedStates.put(groupTitle, !isExpanded);
-        Log.d("GroupedAdapter", "Toggling group " + groupTitle + " at position " + headerPosition + ", expanded: " + !isExpanded);
-        
-        // Find the corresponding status
-        String status = null;
-        for (Map.Entry<String, String> entry : statusTranslations.entrySet()) {
-            if (entry.getValue().equals(groupTitle)) {
-                status = entry.getKey();
-                break;
+        try {
+            Log.d(TAG, "Toggling group: " + groupTitle);
+            boolean isExpanded = expandedStates.get(groupTitle);
+            
+            if (!isExpanded) {
+                Log.d(TAG, "Opening group: " + groupTitle);
+                // Als we een nieuwe groep openen, sluit eerst alle andere groepen
+                closeAllGroupsExcept(groupTitle, headerPosition);
+            } else {
+                Log.d(TAG, "Closing group: " + groupTitle);
+                // Als we de huidige groep sluiten
+                closeGroup(groupTitle, headerPosition);
             }
+            
+            // Update de header voor de pijl animatie
+            notifyItemChanged(headerPosition);
+        } catch (Exception e) {
+            Log.e(TAG, "Error in toggleGroup", e);
         }
+    }
+
+    private void closeGroup(String groupTitle, int headerPosition) {
+        expandedStates.put(groupTitle, false);
+        currentlyExpandedGroup = null;
+        
+        String status = getStatusForTitle(groupTitle);
+        Log.d(TAG, "Found status: " + status + " for group: " + groupTitle);
         
         if (status != null) {
-            final String finalStatus = status;
-            // Find all reservations for this status from the original list
-            List<Reservation> groupReservations = new ArrayList<>();
-            for (Reservation res : allReservations) {
-                String resStatus = res.getStatus();
-                if (resStatus == null) resStatus = "pending";
-                if (finalStatus.equalsIgnoreCase(resStatus)) {
-                    groupReservations.add(res);
-                }
-            }
+            List<Reservation> groupReservations = getReservationsForStatus(status);
+            Log.d(TAG, "Found " + groupReservations.size() + " reservations to remove");
             
-            Log.d("GroupedAdapter", "Found " + groupReservations.size() + " reservations for status " + status);
-            
-            if (isExpanded) {
-                // Remove items
+            if (!groupReservations.isEmpty()) {
                 int startPosition = headerPosition + 1;
-                Log.d("GroupedAdapter", "Removing " + groupReservations.size() + " items starting at position " + startPosition);
-                for (int i = 0; i < groupReservations.size(); i++) {
+                int itemsToRemove = Math.min(groupReservations.size(), 
+                    items.size() - startPosition);
+                Log.d(TAG, "Removing " + itemsToRemove + " items starting at position " + startPosition);
+                
+                for (int i = 0; i < itemsToRemove; i++) {
                     items.remove(startPosition);
                 }
-                notifyItemRangeRemoved(startPosition, groupReservations.size());
-            } else {
-                // Add items
-                int startPosition = headerPosition + 1;
-                Log.d("GroupedAdapter", "Adding " + groupReservations.size() + " items at position " + startPosition);
-                items.addAll(startPosition, groupReservations);
-                notifyItemRangeInserted(startPosition, groupReservations.size());
+                notifyItemRangeRemoved(startPosition, itemsToRemove);
             }
-            
-            // Rotate arrow
-            notifyItemChanged(headerPosition);
         }
+    }
+
+    private void closeAllGroupsExcept(String groupToKeepOpen, int newHeaderPosition) {
+        try {
+            // Sluit eerst alle andere geopende groepen
+            if (currentlyExpandedGroup != null) {
+                // Vind de positie van de huidige open groep
+                int currentHeaderPosition = -1;
+                for (int i = 0; i < items.size(); i++) {
+                    if (items.get(i) instanceof GroupHeader) {
+                        GroupHeader header = (GroupHeader) items.get(i);
+                        if (header.getTitle().equals(currentlyExpandedGroup)) {
+                            currentHeaderPosition = i;
+                            break;
+                        }
+                    }
+                }
+
+                if (currentHeaderPosition != -1) {
+                    closeGroup(currentlyExpandedGroup, currentHeaderPosition);
+                }
+            }
+
+            // Open de nieuwe groep
+            currentlyExpandedGroup = groupToKeepOpen;
+            expandedStates.put(groupToKeepOpen, true);
+            
+            String status = getStatusForTitle(groupToKeepOpen);
+            if (status != null) {
+                List<Reservation> groupReservations = getReservationsForStatus(status);
+                if (!groupReservations.isEmpty()) {
+                    items.addAll(newHeaderPosition + 1, groupReservations);
+                    notifyItemRangeInserted(newHeaderPosition + 1, groupReservations.size());
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error in closeAllGroupsExcept", e);
+        }
+    }
+
+    private String getStatusForTitle(String title) {
+        try {
+            // Debug logging
+            Log.d(TAG, "Looking for status for title: " + title);
+            
+            for (Map.Entry<String, String> entry : statusTranslations.entrySet()) {
+                // Debug logging
+                Log.d(TAG, "Comparing with translation: " + entry.getValue());
+                
+                if (entry.getValue().equals(title)) {
+                    Log.d(TAG, "Found matching status: " + entry.getKey());
+                    return entry.getKey();
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error in getStatusForTitle", e);
+        }
+        
+        Log.w(TAG, "No status found for title: " + title);
+        return null;
+    }
+
+    private List<Reservation> getReservationsForStatus(String status) {
+        List<Reservation> result = new ArrayList<>();
+        try {
+            for (Reservation reservation : allReservations) {
+                String resStatus = reservation.getStatus();
+                if (resStatus == null) {
+                    resStatus = "pending";
+                }
+                
+                // Debug logging
+                Log.d(TAG, "Comparing status: " + status.toLowerCase() + " with reservation status: " + resStatus.toLowerCase());
+                
+                // Case-insensitive vergelijking
+                if (status.equalsIgnoreCase(resStatus)) {
+                    result.add(reservation);
+                    Log.d(TAG, "Added reservation to result list");
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error in getReservationsForStatus", e);
+        }
+        
+        Log.d(TAG, "Found " + result.size() + " reservations for status: " + status);
+        return result;
     }
 
     private void showReviewDialog(Reservation reservation) {
@@ -499,6 +639,9 @@ public class GroupedReservationAdapter extends RecyclerView.Adapter<RecyclerView
         Button reviewButton;
         LinearLayout reviewsContainer;
         RecyclerView reviewsRecyclerView;
+        LinearLayout ownerContainer;
+        LinearLayout renterContainer;
+        TextView ownerName;
 
         public ItemViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -512,8 +655,15 @@ public class GroupedReservationAdapter extends RecyclerView.Adapter<RecyclerView
             reviewsContainer = itemView.findViewById(R.id.reviewsContainer);
             reviewsRecyclerView = itemView.findViewById(R.id.reviewsRecyclerView);
             
-            // Alleen voor lease view
+            // Voor rental view (niet-lease view)
+            if (!isLeaseView) {
+                ownerContainer = itemView.findViewById(R.id.ownerContainer);
+                ownerName = itemView.findViewById(R.id.ownerName);
+            }
+            
+            // Voor lease view
             if (isLeaseView) {
+                renterContainer = itemView.findViewById(R.id.renterContainer);
                 renterName = itemView.findViewById(R.id.renterName);
                 actionButtons = itemView.findViewById(R.id.actionButtons);
                 acceptButton = itemView.findViewById(R.id.acceptButton);
