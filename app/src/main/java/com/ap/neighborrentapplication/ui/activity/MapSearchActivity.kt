@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.location.Geocoder
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
@@ -22,6 +23,7 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
+import org.osmdroid.views.overlay.Polygon
 import java.util.Locale
 
 class MapSearchActivity : BaseActivity() {
@@ -54,6 +56,10 @@ class MapSearchActivity : BaseActivity() {
         setupMap()
         setupLocationServices()
         setupSearch()
+
+        // Set default location to Antwerp and perform search
+        val antwerpLocation = GeoPoint(51.2194, 4.4025)
+        searchDevicesNearLocation(antwerpLocation, SEARCH_RADIUS_KM)
     }
 
     private fun initializeViews() {
@@ -80,18 +86,21 @@ class MapSearchActivity : BaseActivity() {
         }
     }
 
-    private fun performSearch(query: String) {
-        // Check if input is a Belgian postal code (4 digits)
-        if (query.matches(Regex("^\\d{4}$"))) {
-            // Search directly in Firestore for devices with matching postal code
-            searchDevicesByPostalCode(query)
+    private fun performSearch(query: String, radius: Double = SEARCH_RADIUS_KM) {
+        clearMarkers()
+        mapView.overlays.clear() // Clear previous overlays
+        if (query.isEmpty()) {
+            // Default search behavior if query is empty
+            val antwerpLocation = GeoPoint(51.2194, 4.4025)
+            searchDevicesNearLocation(antwerpLocation, radius)
+        } else if (query.matches(Regex("^\\d{4}$"))) {
+            searchDevicesByPostalCode(query, radius)
         } else {
-            // Use geocoding for other searches
-            searchByGeocoding(query)
+            searchByGeocoding(query, radius)
         }
     }
 
-    private fun searchDevicesByPostalCode(postalCode: String) {
+    private fun searchDevicesByPostalCode(postalCode: String, radius: Double) {
         firestore.collection("devices")
             .whereEqualTo("postalCode", postalCode)
             .get()
@@ -101,25 +110,22 @@ class MapSearchActivity : BaseActivity() {
                     Toast.makeText(this, "Geen toestellen gevonden in deze postcode", Toast.LENGTH_SHORT).show()
                     return@addOnSuccessListener
                 }
-                
-                // Get the first device's location to center the map
                 val firstDevice = documents.first().toObject(Device::class.java)
                 val location = getDeviceLocation(firstDevice)
                 mapView.controller.animateTo(location)
-                
-                // Add markers for all devices
-                for (document in documents) {
-                    val device = document.toObject(Device::class.java)
-                    val deviceLocation = getDeviceLocation(device)
-                    addMarkerForDevice(device, deviceLocation)
-                }
+                val searchPoint = GeoPoint(location.latitude, location.longitude)
+                mapView.controller.animateTo(searchPoint)
+                searchDevicesNearLocation(searchPoint, radius)
+
+
+
             }
             .addOnFailureListener { e ->
                 Toast.makeText(this, "Fout bij zoeken: ${e.message}", Toast.LENGTH_SHORT).show()
             }
     }
 
-    private fun searchByGeocoding(query: String) {
+    private fun searchByGeocoding(query: String, radius: Double) {
         val geocoder = Geocoder(this, Locale.getDefault())
         try {
             val addresses = geocoder.getFromLocationName(query, 1)
@@ -127,25 +133,26 @@ class MapSearchActivity : BaseActivity() {
                 val location = addresses[0]
                 val searchPoint = GeoPoint(location.latitude, location.longitude)
                 mapView.controller.animateTo(searchPoint)
-                searchDevicesNearLocation(searchPoint)
+                searchDevicesNearLocation(searchPoint, radius)
             } else {
                 Toast.makeText(this, "Locatie niet gevonden", Toast.LENGTH_SHORT).show()
             }
+        } catch (e: IllegalArgumentException) {
+            Toast.makeText(this, "Ongeldige locatie: ${e.message}", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
             Toast.makeText(this, "Fout bij zoeken locatie: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun searchDevicesNearLocation(location: GeoPoint, searchRadius: Double = SEARCH_RADIUS_KM) {
+        drawCircle(location, searchRadius) // Draw the circle
         firestore.collection("devices")
             .get()
             .addOnSuccessListener { documents ->
                 clearMarkers()
-                
                 for (document in documents) {
                     val device = document.toObject(Device::class.java)
                     val deviceLocation = getDeviceLocation(device)
-                    
                     if (isWithinRadius(location, deviceLocation, searchRadius)) {
                         addMarkerForDevice(device, deviceLocation)
                     }
@@ -194,6 +201,7 @@ class MapSearchActivity : BaseActivity() {
             center.latitude, center.longitude,
             point.latitude, point.longitude
         )
+        Log.d("MapSearchActivity", "Distance to point: $distance km, Radius: $radiusKm km")
         return distance <= radiusKm
     }
 
@@ -245,7 +253,7 @@ class MapSearchActivity : BaseActivity() {
         val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, radiusOptions)
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         radiusSpinner.adapter = adapter
-        
+
         radiusSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 val radius = when(position) {
@@ -255,12 +263,22 @@ class MapSearchActivity : BaseActivity() {
                     3 -> 50.0
                     else -> 5.0
                 }
-                // Update de zoekradius met de huidige kaartlocatie
                 val currentLocation = mapView.mapCenter as GeoPoint
-                searchDevicesNearLocation(currentLocation, radius)
+                performSearch(searchEditText.text.toString(), radius)
             }
 
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
+    }
+
+    private fun drawCircle(center: GeoPoint, radiusKm: Double) {
+        val circle = Polygon().apply {
+            points = Polygon.pointsAsCircle(center, radiusKm * 1000.0) // Convert km to meters
+            fillColor = 0x12121212
+            strokeColor = 0xFF0000FF.toInt()
+            strokeWidth = 2f
+        }
+        mapView.overlays.add(circle)
+        mapView.invalidate()
     }
 } 
