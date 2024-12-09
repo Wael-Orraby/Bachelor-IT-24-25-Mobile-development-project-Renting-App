@@ -14,28 +14,35 @@
             android:id="@+id/editTextText"
             android:layout_width="0dp"
             android:layout_height="55dp"
+            android:layout_marginTop="48dp"
+            android:layout_marginBottom="5dp"
             android:layout_weight="1"
             android:background="@drawable/edittet_background"
-            android:drawableStart="@drawable/search"
-            android:drawablePadding="16dp"
             android:hint="Zoeken..."
-            android:layout_marginTop="50dp"
             android:inputType="text"
             android:padding="16dp" />
-
-        <Spinner
-            android:id="@+id/radiusSpinner"
-            android:layout_width="wrap_content"
-            android:layout_marginTop="50dp"
-
-            android:layout_height="55dp"
-            android:layout_marginStart="8dp" />
-
     </LinearLayout>
+
+    <!-- TextView om de huidige radius te tonen -->
+    <TextView
+        android:id="@+id/radiusTextView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="8dp"
+        android:text="Radius: 5 km"
+        android:textSize="16sp"
+        android:textAlignment="center" />
+
+    <SeekBar
+        android:id="@+id/radiusSeekBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:max="50" />
 
     <org.osmdroid.views.MapView
         android:id="@+id/mapView"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
-
-</LinearLayout> 
+</LinearLayout>
