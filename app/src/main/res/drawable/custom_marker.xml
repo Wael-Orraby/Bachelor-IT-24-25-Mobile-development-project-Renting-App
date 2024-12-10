@@ -1,0 +1,16 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+
+    <!-- Marker-vorm -->
+    <path
+        android:fillColor="#4CAF50"
+    android:pathData="M24,0 C14,0 6,8 6,18 C6,28 24,48 24,48 C24,48 42,28 42,18 C42,8 34,0 24,0 Z" />
+
+    <!-- Binnenste cirkel -->
+    <path
+        android:fillColor="#000000"
+    android:pathData="M24,12 A6,6 0 1,1 24,24 A6,6 0 1,1 24,12 Z" />
+</vector>

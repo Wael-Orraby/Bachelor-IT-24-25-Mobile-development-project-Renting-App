@@ -33,7 +33,8 @@
         <activity
             android:name=".ui.activity.LoginActivity"
             android:exported="true"
-            android:label="@string/title_activity_login"></activity>
+            android:label="@string/title_activity_login">
+        </activity>
         <activity
             android:name=".ui.activity.DashboardActivity"
             android:exported="false" />
