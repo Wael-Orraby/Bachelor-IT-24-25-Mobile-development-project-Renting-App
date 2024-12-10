@@ -1,11 +1,19 @@
 package com.ap.neighborrentapplication.ui.activity
 
 import android.Manifest
+import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.drawable.BitmapDrawable
 import android.location.Geocoder
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
@@ -51,6 +59,7 @@ class MapSearchActivity : BaseActivity() {
             applicationContext,
             androidx.preference.PreferenceManager.getDefaultSharedPreferences(applicationContext)
         )
+
 
         initializeViews()
         setupMap()
@@ -212,6 +221,87 @@ class MapSearchActivity : BaseActivity() {
                     }
                 }
             }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Fout bij ophalen van apparaten: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    private fun addMarkerForDevice(device: Device, location: GeoPoint) {
+        val marker = Marker(mapView).apply {
+            position = location
+            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+
+            // Stel een aangepast marker-icoon in
+            icon = BitmapDrawable(
+                resources,
+                createMarkerWithLabel(this@MapSearchActivity, "${device.name}\n${device.pricePerDay}€/dag")
+            )
+
+            // Kliklistener om naar DashboardActivity te navigeren met details van dit apparaat
+            setOnMarkerClickListener { _, _ ->
+                val intent = Intent(this@MapSearchActivity, DashboardActivity::class.java).apply {
+                    putExtra("deviceId", device.id) // Stuur apparaat-ID mee
+                }
+                startActivity(intent)
+                true
+            }
+        }
+
+        // Voeg de marker toe aan de kaart
+        mapView.overlays.add(marker)
+        mapView.invalidate()
+    }
+
+    private fun createMarkerWithLabel(context: Context, labelText: String): Bitmap {
+        val markerLayout = FrameLayout(context).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+
+        val textView = TextView(context).apply {
+            text = labelText
+            setTextColor(Color.BLACK)
+            textSize = 12f
+            setBackgroundColor(Color.WHITE)
+            setPadding(10, 5, 10, 5)
+            elevation = 10f
+        }
+        val textLayoutParams = FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+            FrameLayout.LayoutParams.WRAP_CONTENT
+        ).apply {
+            topMargin = -16
+            bottomMargin = 40
+            gravity = android.view.Gravity.CENTER_HORIZONTAL
+        }
+        markerLayout.addView(textView, textLayoutParams)
+
+        val markerIcon = View(context).apply {
+            setBackgroundResource(R.drawable.custom_marker)
+        }
+        val iconLayoutParams = FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+            FrameLayout.LayoutParams.WRAP_CONTENT
+        ).apply {
+            gravity = android.view.Gravity.CENTER_HORIZONTAL
+        }
+        markerLayout.addView(markerIcon, iconLayoutParams)
+
+        val widthSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        val heightSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        markerLayout.measure(widthSpec, heightSpec)
+        markerLayout.layout(0, 0, markerLayout.measuredWidth, markerLayout.measuredHeight)
+
+        val bitmap = Bitmap.createBitmap(
+            markerLayout.measuredWidth,
+            markerLayout.measuredHeight,
+            Bitmap.Config.ARGB_8888
+        )
+        val canvas = Canvas(bitmap)
+        markerLayout.draw(canvas)
+        return bitmap
     }
 
     private fun adjustMapZoomForRadius(center: GeoPoint, radiusKm: Double) {
@@ -221,12 +311,11 @@ class MapSearchActivity : BaseActivity() {
     }
 
     private fun calculateZoomLevelForRadius(radiusMeters: Double): Double {
-        val scaleFactor = radiusMeters / 500
+        val scaleFactor = radiusMeters / 455
         return Math.log(40075000.0 / scaleFactor) / Math.log(2.0) - 8
     }
 
     private fun drawCircle(center: GeoPoint, radiusKm: Double) {
-        // Verwijder de bestaande cirkel als die bestaat
         currentCircle?.let {
             mapView.overlays.remove(it)
         }
@@ -234,12 +323,11 @@ class MapSearchActivity : BaseActivity() {
         // Maak een nieuwe cirkel
         val circle = Polygon().apply {
             points = Polygon.pointsAsCircle(center, radiusKm * 1000.0) // Radius in meters
-            fillColor = 0x12121212 // Transparant grijs
-            strokeColor = 0xFF0000FF.toInt() // Blauw
+            fillColor = 0x12121212
+            strokeColor = 0xFF0000FF.toInt()
             strokeWidth = 2f
         }
 
-        // Voeg de nieuwe cirkel toe aan de kaart en sla deze op
         currentCircle = circle
         mapView.overlays.add(circle)
         mapView.invalidate()
@@ -259,18 +347,6 @@ class MapSearchActivity : BaseActivity() {
         } catch (e: Exception) {
             GeoPoint(51.2194, 4.4025)
         }
-    }
-
-    private fun addMarkerForDevice(device: Device, location: GeoPoint) {
-        val marker = Marker(mapView).apply {
-            position = location
-            title = device.name
-            snippet = "${device.pricePerDay}€ per dag"
-            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-        }
-        markers.add(marker)
-        mapView.overlays.add(marker)
-        mapView.invalidate()
     }
 
     private fun clearMarkers() {
@@ -298,4 +374,5 @@ class MapSearchActivity : BaseActivity() {
         val c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
         return R * c
     }
+
 }

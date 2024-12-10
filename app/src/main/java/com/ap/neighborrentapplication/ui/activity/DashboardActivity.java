@@ -53,6 +53,8 @@ public class DashboardActivity extends AppCompatActivity {
     private TextView userGreetingText;
     private FirebaseAuth auth;
 
+    private boolean isSingleDeviceView = false;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -74,10 +76,10 @@ public class DashboardActivity extends AppCompatActivity {
 
 
         EditText searchEditText = findViewById(R.id.editTextText);
-searchEditText.setOnClickListener(v -> {
-    Intent intent = new Intent(DashboardActivity.this, MapSearchActivity.class);
-    startActivity(intent);
-});
+        searchEditText.setOnClickListener(v -> {
+            Intent intent = new Intent(DashboardActivity.this, MapSearchActivity.class);
+            startActivity(intent);
+        });
 
         profileBtn = findViewById(R.id.searchBtn);
         profileBtn.setOnClickListener(v ->  startActivity(new Intent(DashboardActivity.this, CategorySearchActivity.class)));
@@ -109,7 +111,41 @@ searchEditText.setOnClickListener(v -> {
         });
 
         initRecyclerView();
-        loadDevicesFromFirestore();
+
+        // Controleer of een apparaat-ID is meegegeven
+        String deviceId = getIntent().getStringExtra("deviceId");
+        if (deviceId != null) {
+            loadSingleDeviceFromFirestore(deviceId); // Laad één apparaat
+        } else {
+            loadDevicesFromFirestore(); // Laad alle apparaten
+        }
+        // Stel de home-knop in
+        homeBtnImage.setOnClickListener(v -> {
+            if (isSingleDeviceView) {
+                loadDevicesFromFirestore(); // Toon de volledige lijst
+                isSingleDeviceView = false;
+                Toast.makeText(this, "Alle apparaten weergegeven", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, "Je bent al op de hoofdweergave", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+    private void loadSingleDeviceFromFirestore(String deviceId) {
+        firestore.collection("devices")
+                .document(deviceId)
+                .get()
+                .addOnSuccessListener(document -> {
+                    if (document.exists()) {
+                        Device device = document.toObject(Device.class);
+                        deviceList.clear();
+                        deviceList.add(device);
+                        adapterList.notifyDataSetChanged();
+                        isSingleDeviceView = true; // Zet de toestand op enkel apparaatweergave
+                    } else {
+                        Toast.makeText(this, "Apparaat niet gevonden", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .addOnFailureListener(e -> Toast.makeText(this, "Fout bij ophalen apparaat", Toast.LENGTH_SHORT).show());
     }
 
     private void initRecyclerView() {
