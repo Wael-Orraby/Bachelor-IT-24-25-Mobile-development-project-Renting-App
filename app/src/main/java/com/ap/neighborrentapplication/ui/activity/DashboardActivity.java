@@ -53,6 +53,8 @@ public class DashboardActivity extends AppCompatActivity {
     private TextView userGreetingText;
     private FirebaseAuth auth;
 
+    private boolean isSingleDeviceView = false;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -60,10 +62,10 @@ public class DashboardActivity extends AppCompatActivity {
 
         auth = FirebaseAuth.getInstance();
         firestore = FirebaseFirestore.getInstance();
-        
+
         userGreetingText = findViewById(R.id.textView5);
         loadUserData();
-        
+
         homeBtnImage = findViewById(R.id.homeBtnImage);
         homeBtnTxt = findViewById(R.id.homeBtnTxt);
         homeBtnImage.setColorFilter(Color.parseColor("#FF3700B3"), PorterDuff.Mode.SRC_IN);
@@ -74,10 +76,10 @@ public class DashboardActivity extends AppCompatActivity {
 
 
         EditText searchEditText = findViewById(R.id.editTextText);
-searchEditText.setOnClickListener(v -> {
-    Intent intent = new Intent(DashboardActivity.this, MapSearchActivity.class);
-    startActivity(intent);
-});
+        searchEditText.setOnClickListener(v -> {
+            Intent intent = new Intent(DashboardActivity.this, MapSearchActivity.class);
+            startActivity(intent);
+        });
 
         profileBtn = findViewById(R.id.searchBtn);
         profileBtn.setOnClickListener(v ->  startActivity(new Intent(DashboardActivity.this, CategorySearchActivity.class)));
@@ -95,7 +97,7 @@ searchEditText.setOnClickListener(v -> {
 
         favoritesSection = findViewById(R.id.favoritesSection);
         favoritesSectionIcon = findViewById(R.id.imageView8);
-        
+
         favoritesSection.setOnClickListener(v -> {
             if (isFavoritesShowing) {
                 favoritesSectionIcon.setImageResource(R.drawable.favorites);
@@ -109,7 +111,41 @@ searchEditText.setOnClickListener(v -> {
         });
 
         initRecyclerView();
-        loadDevicesFromFirestore();
+
+        // Controleer of een apparaat-ID is meegegeven
+        String deviceId = getIntent().getStringExtra("deviceId");
+        if (deviceId != null) {
+            loadSingleDeviceFromFirestore(deviceId); // Laad één apparaat
+        } else {
+            loadDevicesFromFirestore(); // Laad alle apparaten
+        }
+        // Stel de home-knop in
+        homeBtnImage.setOnClickListener(v -> {
+            if (isSingleDeviceView) {
+                loadDevicesFromFirestore(); // Toon de volledige lijst
+                isSingleDeviceView = false;
+                Toast.makeText(this, "Alle apparaten weergegeven", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, "Je bent al op de hoofdweergave", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+    private void loadSingleDeviceFromFirestore(String deviceId) {
+        firestore.collection("devices")
+                .document(deviceId)
+                .get()
+                .addOnSuccessListener(document -> {
+                    if (document.exists()) {
+                        Device device = document.toObject(Device.class);
+                        deviceList.clear();
+                        deviceList.add(device);
+                        adapterList.notifyDataSetChanged();
+                        isSingleDeviceView = true; // Zet de toestand op enkel apparaatweergave
+                    } else {
+                        Toast.makeText(this, "Apparaat niet gevonden", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .addOnFailureListener(e -> Toast.makeText(this, "Fout bij ophalen apparaat", Toast.LENGTH_SHORT).show());
     }
 
     private void initRecyclerView() {
@@ -146,15 +182,16 @@ searchEditText.setOnClickListener(v -> {
         });
     }
 
+
     private void showFavorites() {
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        
+
         firestore.collection("favorites")
                 .whereEqualTo("userId", userId)
                 .get()
                 .addOnSuccessListener(documents -> {
                     deviceList.clear();
-                    
+
                     if (documents.isEmpty()) {
                         Toast.makeText(this, "Je hebt nog geen favorieten", Toast.LENGTH_SHORT).show();
                         loadDevicesFromFirestore();
@@ -165,37 +202,48 @@ searchEditText.setOnClickListener(v -> {
 
                     for (DocumentSnapshot document : documents) {
                         String deviceId = document.getString("deviceId");
-                        
+
                         if (deviceId != null) {
+                            // Gebruik document() in plaats van whereEqualTo()
                             firestore.collection("devices")
-                                    .whereEqualTo("id", deviceId)
+                                    .document(deviceId)
                                     .get()
-                                    .addOnSuccessListener(deviceDocs -> {
-                                        if (!deviceDocs.isEmpty()) {
-                                            Device device = deviceDocs.getDocuments().get(0).toObject(Device.class);
+                                    .addOnSuccessListener(deviceDoc -> {
+                                        if (deviceDoc.exists()) {
+                                            Device device = deviceDoc.toObject(Device.class);
                                             if (device != null) {
+                                                // Zet het document ID in het device object
+                                                device.setId(deviceDoc.getId());
                                                 deviceList.add(device);
                                                 adapterList.notifyDataSetChanged();
                                             }
                                         }
+                                    })
+                                    .addOnFailureListener(e -> {
+                                        Toast.makeText(this, "Fout bij ophalen apparaat: " + e.getMessage(),
+                                                Toast.LENGTH_SHORT).show();
                                     });
                         }
                     }
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Fout bij ophalen favorieten: " + e.getMessage(),
+                            Toast.LENGTH_SHORT).show();
                 });
     }
 
     private void loadUserData() {
         String userId = auth.getCurrentUser().getUid();
         firestore.collection("users").document(userId)
-            .get()
-            .addOnSuccessListener(documentSnapshot -> {
-                if (documentSnapshot.exists()) {
-                    String firstName = documentSnapshot.getString("firstName");
-                    userGreetingText.setText("Hallo, " + firstName + " 😀");
-                }
-            })
-            .addOnFailureListener(e -> {
-                Toast.makeText(this, "Fout bij ophalen gebruikersgegevens", Toast.LENGTH_SHORT).show();
-            });
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        String firstName = documentSnapshot.getString("firstName");
+                        userGreetingText.setText("Hallo, " + firstName + " 😀");
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Fout bij ophalen gebruikersgegevens", Toast.LENGTH_SHORT).show();
+                });
     }
 }
