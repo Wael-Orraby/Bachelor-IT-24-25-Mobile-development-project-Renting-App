@@ -5,6 +5,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/dark_blue"
+    android:clipToPadding="false"
+    android:overScrollMode="never"
     android:padding="16dp">
 
     <LinearLayout
@@ -14,43 +16,55 @@
         android:gravity="center_horizontal"
         android:padding="16dp">
 
-        <!-- Cirkelvormige achtergrond voor het logo -->
-        <View
-            android:layout_width="150dp"
-            android:layout_height="150dp"
-            android:layout_marginTop="61dp"
-            android:background="@drawable/circle_background"
-            android:layout_gravity="center_horizontal" />
+        <!-- Logo Container -->
+        <FrameLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="40dp">
 
-        <!-- Logo -->
-        <ImageView
-            android:id="@+id/logoImageView"
-            android:layout_width="120dp"
-            android:layout_height="120dp"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="-150dp"
-            android:src="@drawable/ic_app_logo"
-            app:tint="@color/white"
-            android:contentDescription="App logo" />
+            <View
+                android:layout_width="160dp"
+                android:layout_height="160dp"
+                android:background="@drawable/circle_background"
+                android:alpha="0.9"/>
 
-        <!-- Welkomstboodschap -->
+            <ImageView
+                android:id="@+id/logoImageView"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_app_logo"
+                android:contentDescription="App logo"
+                app:tint="@color/white"/>
+        </FrameLayout>
+
+        <!-- Welcome Message -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Maak een account aan"
-            android:textSize="22sp"
+            android:textSize="28sp"
             android:textColor="@color/white"
+            android:fontFamily="sans-serif-medium"
             android:textStyle="bold"
-            android:gravity="center"
-            android:layout_marginTop="-5dp"/>
+            android:layout_marginTop="24dp"/>
 
-        <!-- Registratieformulier in een CardView -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Vul je gegevens in om te registreren"
+            android:textColor="@color/white"
+            android:alpha="0.8"
+            android:textSize="16sp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="32dp"/>
+
+        <!-- Registration Form Card -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
             app:cardCornerRadius="16dp"
-            app:cardElevation="4dp"
+            app:cardElevation="8dp"
             app:cardBackgroundColor="@color/white">
 
             <LinearLayout
@@ -59,7 +73,7 @@
                 android:orientation="vertical"
                 android:padding="24dp">
 
-                <!-- Naam en Voornaam naast elkaar -->
+                <!-- Name Fields -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -70,35 +84,45 @@
                     <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        app:boxBackgroundColor="@color/light_blue"
                         android:layout_weight="1"
+                        android:layout_marginEnd="8dp"
                         android:hint="Naam"
-                        android:layout_marginEnd="8dp">
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        app:startIconDrawable="@android:drawable/ic_menu_edit"
+                        app:startIconTint="@color/dark_blue"
+                        app:boxStrokeColor="@color/dark_blue"
+                        app:hintTextColor="@color/dark_blue">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/lastNameEditText"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="textPersonName"/>
+                            android:inputType="textPersonName"
+                            android:textColor="@color/black"/>
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        app:boxBackgroundColor="@color/light_blue"
+                        android:layout_marginStart="8dp"
                         android:hint="Voornaam"
-                        android:layout_marginStart="8dp">
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        app:startIconDrawable="@android:drawable/ic_menu_edit"
+                        app:startIconTint="@color/dark_blue"
+                        app:boxStrokeColor="@color/dark_blue"
+                        app:hintTextColor="@color/dark_blue">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/firstNameEditText"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="textPersonName"/>
+                            android:inputType="textPersonName"
+                            android:textColor="@color/black"/>
                     </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>
 
-                <!-- Straat en Straatnummer naast elkaar -->
+                <!-- Street Fields -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -109,35 +133,43 @@
                     <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        app:boxBackgroundColor="@color/light_blue"
+                        android:layout_weight="1.3"
+                        android:layout_marginEnd="8dp"
                         android:hint="Straat"
-                        android:layout_marginEnd="8dp">
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        app:startIconDrawable="@android:drawable/ic_menu_directions"
+                        app:startIconTint="@color/dark_blue"
+                        app:boxStrokeColor="@color/dark_blue"
+                        app:hintTextColor="@color/dark_blue">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/streetEditText"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="textPostalAddress"/>
+                            android:inputType="textPostalAddress"
+                            android:textColor="@color/black"/>
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        app:boxBackgroundColor="@color/light_blue"
-                        android:layout_weight="1"
-                        android:hint="Straatnummer"
-                        android:layout_marginStart="8dp">
+                        android:layout_weight="0.7"
+                        android:layout_marginStart="8dp"
+                        android:hint="Nr."
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        app:boxStrokeColor="@color/dark_blue"
+                        app:hintTextColor="@color/dark_blue">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/streetNumberEditText"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="number"/>
+                            android:inputType="number"
+                            android:textColor="@color/black"/>
                     </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>
 
-                <!-- Stad en Postcode naast elkaar -->
+                <!-- City Fields -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -148,103 +180,146 @@
                     <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        app:boxBackgroundColor="@color/light_blue"
+                        android:layout_weight="1.3"
+                        android:layout_marginEnd="8dp"
                         android:hint="Stad"
-                        android:layout_marginEnd="8dp">
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        app:startIconDrawable="@android:drawable/ic_menu_compass"
+                        app:startIconTint="@color/dark_blue"
+                        app:boxStrokeColor="@color/dark_blue"
+                        app:hintTextColor="@color/dark_blue">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/cityEditText"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="text"/>
+                            android:inputType="text"
+                            android:textColor="@color/black"/>
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        app:boxBackgroundColor="@color/light_blue"
+                        android:layout_weight="0.7"
+                        android:layout_marginStart="8dp"
                         android:hint="Postcode"
-                        android:layout_marginStart="8dp">
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        app:boxStrokeColor="@color/dark_blue"
+                        app:hintTextColor="@color/dark_blue">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/postalCodeEditText"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="number"/>
+                            android:inputType="number"
+                            android:textColor="@color/black"/>
                     </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>
 
-                <!-- Email -->
+                <!-- Email Field -->
                 <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    app:boxBackgroundColor="@color/light_blue"
                     android:hint="Email"
-                    android:layout_marginBottom="16dp">
+                    android:layout_marginBottom="16dp"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    app:startIconDrawable="@android:drawable/ic_dialog_email"
+                    app:startIconTint="@color/dark_blue"
+                    app:boxStrokeColor="@color/dark_blue"
+                    app:hintTextColor="@color/dark_blue">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/emailEditText"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="textEmailAddress"/>
+                        android:inputType="textEmailAddress"
+                        android:textColor="@color/black"/>
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <!-- Wachtwoord -->
+                <!-- Password Fields -->
                 <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    app:boxBackgroundColor="@color/light_blue"
                     android:hint="Wachtwoord"
-                    android:layout_marginBottom="16dp">
+                    android:layout_marginBottom="16dp"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    app:startIconDrawable="@android:drawable/ic_lock_idle_lock"
+                    app:startIconTint="@color/dark_blue"
+                    app:boxStrokeColor="@color/dark_blue"
+                    app:hintTextColor="@color/dark_blue"
+                    app:passwordToggleEnabled="true"
+                    app:passwordToggleTint="@color/dark_blue">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/passwordEditText"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="textPassword"/>
+                        android:inputType="textPassword"
+                        android:textColor="@color/black"/>
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <!-- Herhaal Wachtwoord -->
                 <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    app:boxBackgroundColor="@color/light_blue"
-                    android:hint="Herhaal wachtwoord">
+                    android:hint="Bevestig wachtwoord"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    app:startIconDrawable="@android:drawable/ic_lock_idle_lock"
+                    app:startIconTint="@color/dark_blue"
+                    app:boxStrokeColor="@color/dark_blue"
+                    app:hintTextColor="@color/dark_blue"
+                    app:passwordToggleEnabled="true"
+                    app:passwordToggleTint="@color/dark_blue">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/confirmPasswordEditText"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="textPassword"/>
+                        android:inputType="textPassword"
+                        android:textColor="@color/black"/>
                 </com.google.android.material.textfield.TextInputLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Registreer Knop -->
+        <!-- Register Button -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/registerButton"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Registreer"
+            android:layout_height="60dp"
+            android:layout_marginTop="24dp"
+            android:text="Registreren"
             android:textAllCaps="false"
+            android:textSize="16sp"
+            app:icon="@android:drawable/ic_menu_send"
+            app:iconGravity="textEnd"
             android:backgroundTint="@color/buttonColor"
-            android:textColor="@color/white"
-            app:cornerRadius="8dp"
-            android:layout_marginTop="25dp"/>
+            app:cornerRadius="12dp"
+            android:elevation="4dp"/>
 
-        <!-- Teug naar inlog pagina Knop -->
-        <TextView
-            android:id="@+id/backToLoginText"
+        <!-- Login Link -->
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="22dp"
-            android:text="Heb je al een account? Meld je hier aan"
-            android:textSize="16sp"
-            android:textColor="@color/white"
-            android:clickable="true"
-            android:gravity="center"
-            android:textStyle="bold" />
+            android:layout_marginTop="24dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Al een account? "
+                android:textColor="@color/white"
+                android:alpha="0.8"
+                android:textSize="14sp"/>
+
+            <TextView
+                android:id="@+id/loginText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="INLOGGEN"
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:clickable="true"
+                android:focusable="true"/>
+        </LinearLayout>
     </LinearLayout>
 </ScrollView>

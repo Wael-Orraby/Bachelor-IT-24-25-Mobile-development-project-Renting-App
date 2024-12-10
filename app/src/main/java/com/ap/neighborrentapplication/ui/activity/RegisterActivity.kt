@@ -37,7 +37,7 @@ class RegisterActivity : BaseActivity() {
         }
 
         // ga naar inlog pagina
-        binding.backToLoginText.setOnClickListener {
+        binding.loginText.setOnClickListener {
             val intent = Intent(this, LoginActivity::class.java)
             startActivity(intent)
             finish()
